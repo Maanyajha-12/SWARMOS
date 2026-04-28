@@ -1,0 +1,11 @@
+name: Deliberate
+version: 1.0.0
+description: SWARM OS - Autonomous Multi-Agent System with 0G Compute Verification
+
+profiles:
+  - name: default
+description: Production profile
+
+dependencies:
+  - name: forge-std
+version: "^1.7.0"
