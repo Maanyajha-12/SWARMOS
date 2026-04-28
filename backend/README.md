@@ -1,4 +1,4 @@
-# Backend - SWARM OS Server
+# Backend - SWARMOS Server
 
 Express.js + Node.js server with multi-agent orchestration and 0G Compute verification.
 
