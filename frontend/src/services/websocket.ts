@@ -5,12 +5,12 @@ class WebSocketManager {
     private reconnectAttempts = 0
     private maxReconnectAttempts = 5
     private reconnectDelay = 3000
+    private reconnectTimer: any = null   // ✅ added
     private messageHandlers: Map<string, Function[]> = new Map()
     private connectedCallbacks: Function[] = []
     private disconnectedCallbacks: Function[] = []
 
     private constructor() {
-        // Use environment variable or fall back to backend on port 5000
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
         const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
         const wsHost = apiUrl.replace('http://', '').replace('https://', '')
@@ -25,8 +25,13 @@ class WebSocketManager {
     }
 
     connect(): void {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            console.log('WebSocket already connected')
+        // ✅ FIX: handle CONNECTING state also
+        if (
+            this.ws &&
+            (this.ws.readyState === WebSocket.OPEN ||
+                this.ws.readyState === WebSocket.CONNECTING)
+        ) {
+            console.log('WebSocket already connecting/connected')
             return
         }
 
@@ -36,6 +41,7 @@ class WebSocketManager {
             this.ws.onopen = () => {
                 console.log('WebSocket connected')
                 this.reconnectAttempts = 0
+                this.reconnectTimer = null   // ✅ reset timer
                 this.connectedCallbacks.forEach((cb) => cb())
             }
 
@@ -51,6 +57,8 @@ class WebSocketManager {
 
             this.ws.onclose = () => {
                 console.log('WebSocket disconnected')
+                this.ws = null   // ✅ IMPORTANT
+
                 this.disconnectedCallbacks.forEach((cb) => cb())
                 this.attemptReconnect()
             }
@@ -65,12 +73,19 @@ class WebSocketManager {
     }
 
     private attemptReconnect(): void {
+        // ✅ prevent multiple timers
+        if (this.reconnectTimer) return
+
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++
             console.log(
                 `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
             )
-            setTimeout(() => this.connect(), this.reconnectDelay)
+
+            this.reconnectTimer = setTimeout(() => {
+                this.reconnectTimer = null
+                this.connect()
+            }, this.reconnectDelay)
         } else {
             console.error('Max reconnection attempts reached')
         }
