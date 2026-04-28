@@ -1,5 +1,2 @@
 .env
 lib/
-broadcast/
-cache/
-out/
