@@ -55,7 +55,7 @@ Result: Verifiable, transparent, trustworthy
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/swarm-os.git
+git clone https://github.com/Maanyajha-12/SWARMOS.git
 cd swarm-os
 
 # Backend setup
