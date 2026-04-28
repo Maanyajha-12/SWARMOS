@@ -162,15 +162,21 @@ function runDeliberation(prompt: string, mode: string): void {
         });
     };
 
-    orchestrator.once("planner_complete", plannerHandler);
-    orchestrator.once("researcher_complete", researcherHandler);
-    orchestrator.once("critic_complete", criticHandler);
-    orchestrator.once("compute_verified", verifierHandler);
-    orchestrator.once("executor_complete", executorHandler);
+    orchestrator.on("planner_complete", plannerHandler);
+    orchestrator.on("researcher_complete", researcherHandler);
+    orchestrator.on("critic_complete", criticHandler);
+    orchestrator.on("compute_verified", verifierHandler);
+    orchestrator.on("executor_complete", executorHandler);
 
     (async () => {
         try {
             const result = await orchestrator.deliberate(prompt, mode as any);
+            // cleanup listeners (IMPORTANT)
+            orchestrator.off("planner_complete", plannerHandler);
+            orchestrator.off("researcher_complete", researcherHandler);
+            orchestrator.off("critic_complete", criticHandler);
+            orchestrator.off("compute_verified", verifierHandler);
+            orchestrator.off("executor_complete", executorHandler);
 
             // Store result in active sessions
             activeSessions.set(result.session_id, result);
