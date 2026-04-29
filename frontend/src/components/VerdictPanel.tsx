@@ -89,6 +89,20 @@ export default function VerdictPanel({ verdict, loading }: { verdict?: VerdictDa
                     <p className="text-sm text-slate-300 leading-relaxed">{verdict.feedback}</p>
                 </div>
             )}
+
+            {(verdict as any).improvements?.length > 0 && (
+                <div className="bg-[#040810] rounded-xl p-4 sm:p-5 border border-slate-700/15">
+                    <p className="text-[10px] text-slate-600 uppercase tracking-wider font-semibold mb-2.5">Suggested Improvements</p>
+                    <div className="space-y-1.5">
+                        {(verdict as any).improvements.map((imp: string, i: number) => (
+                            <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
+                                <span className="text-blue-400 mt-0.5 flex-shrink-0">→</span>
+                                <span>{imp}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </motion.div>
     )
 }

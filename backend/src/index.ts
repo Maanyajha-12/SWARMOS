@@ -124,7 +124,22 @@ async function handleDeliberate(data: any, ws: WebSocket): Promise<string> {
 
 // Shared deliberation runner (used by both WebSocket and REST)
 function runDeliberation(prompt: string, mode: string): void {
-    // Setup event listeners (use once to avoid leaks)
+    // Setup event listeners — started + complete for each agent phase
+    const makeStartedHandler = (agentName: string) => () => {
+        broadcastToAll({
+            type: "agent_started",
+            agent: agentName,
+            event: "started",
+            timestamp: new Date().toISOString(),
+        });
+    };
+
+    const plannerStartedHandler = makeStartedHandler("planner");
+    const researcherStartedHandler = makeStartedHandler("researcher");
+    const criticStartedHandler = makeStartedHandler("critic");
+    const verifierStartedHandler = makeStartedHandler("verifier");
+    const executorStartedHandler = makeStartedHandler("executor");
+
     const plannerHandler = (planData: any) => {
         broadcastToAll({
             type: "agent_update",
@@ -170,6 +185,14 @@ function runDeliberation(prompt: string, mode: string): void {
         });
     };
 
+    // Register started events
+    orchestrator.on("planner_started", plannerStartedHandler);
+    orchestrator.on("researcher_started", researcherStartedHandler);
+    orchestrator.on("critic_started", criticStartedHandler);
+    orchestrator.on("verifier_started", verifierStartedHandler);
+    orchestrator.on("executor_started", executorStartedHandler);
+
+    // Register complete events
     orchestrator.on("planner_complete", plannerHandler);
     orchestrator.on("researcher_complete", researcherHandler);
     orchestrator.on("critic_complete", criticHandler);
@@ -180,6 +203,11 @@ function runDeliberation(prompt: string, mode: string): void {
         try {
             const result = await orchestrator.deliberate(prompt, mode as any);
             // cleanup listeners (IMPORTANT)
+            orchestrator.off("planner_started", plannerStartedHandler);
+            orchestrator.off("researcher_started", researcherStartedHandler);
+            orchestrator.off("critic_started", criticStartedHandler);
+            orchestrator.off("verifier_started", verifierStartedHandler);
+            orchestrator.off("executor_started", executorStartedHandler);
             orchestrator.off("planner_complete", plannerHandler);
             orchestrator.off("researcher_complete", researcherHandler);
             orchestrator.off("critic_complete", criticHandler);

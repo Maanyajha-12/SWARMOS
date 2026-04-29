@@ -52,28 +52,65 @@ export default function DeliberationPanel() {
 
     useEffect(() => {
         const ws = WebSocketManager.getInstance()
+
+        // Handle agent "started" — transition that phase to running
+        const handleAgentStarted = (msg: any) => {
+            const agentName = msg.agent
+            setPhases(prev => prev.map(phase => {
+                if (phase.name === agentName) return { ...phase, status: 'running' }
+                return phase
+            }))
+        }
+
+        // Handle agent "complete" — set data and mark complete
         const handleAgentUpdate = (msg: any) => {
             const agentName = msg.agent
             setPhases(prev => prev.map(phase => {
                 if (phase.name === agentName) return { ...phase, status: 'complete', data: msg.data }
-                const currentIdx = prev.findIndex(p => p.name === agentName)
-                const phaseIdx = prev.findIndex(p => p.name === phase.name)
-                if (phaseIdx === currentIdx + 1 && phase.status === 'pending') return { ...phase, status: 'running' }
                 return phase
             }))
         }
+
+        // Handle full deliberation complete — populate any missing data from result
         const handleComplete = (msg: any) => {
-            setFullResult(msg.result)
+            const result = msg.result
+            setFullResult(result)
             setIsRunning(false)
-            setPhases(prev => prev.map(phase => ({
-                ...phase, status: phase.status === 'pending' ? 'pending' : 'complete'
-            })))
+
+            setPhases(prev => prev.map(phase => {
+                // If phase already has data from real-time events, keep it
+                if (phase.status === 'complete' && phase.data) return phase
+
+                // Populate missing data from the full result
+                let data = phase.data
+                if (!data) {
+                    if (phase.name === 'planner' && result?.plan) data = result.plan
+                    else if (phase.name === 'researcher' && result?.evidence) data = result.evidence
+                    else if (phase.name === 'critic' && result?.verdict) data = result.verdict
+                    else if (phase.name === 'verifier' && result?.verification) data = result.verification
+                    else if (phase.name === 'executor' && result?.execution) data = result.execution
+                }
+
+                return {
+                    ...phase,
+                    status: data ? 'complete' : phase.status,
+                    data: data || phase.data,
+                }
+            }))
         }
+
         const handleError = (msg: any) => { setError(msg.error || 'Deliberation failed'); setIsRunning(false) }
+
+        ws.on('agent_started', handleAgentStarted)
         ws.on('agent_update', handleAgentUpdate)
         ws.on('deliberation_complete', handleComplete)
         ws.on('deliberation_error', handleError)
-        return () => { ws.off('agent_update', handleAgentUpdate); ws.off('deliberation_complete', handleComplete); ws.off('deliberation_error', handleError) }
+        return () => {
+            ws.off('agent_started', handleAgentStarted)
+            ws.off('agent_update', handleAgentUpdate)
+            ws.off('deliberation_complete', handleComplete)
+            ws.off('deliberation_error', handleError)
+        }
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -294,7 +331,7 @@ export default function DeliberationPanel() {
                         </div>
 
                         {criticData && <motion.div variants={fadeUp}><VerdictPanel verdict={criticData} /></motion.div>}
-                        {verifierData && <motion.div variants={fadeUp}><VerificationBadge confidence={verifierData.confidence || 0} verified={verifierData.verified || false} proof={verifierData.proof} message={verifierData.message} /></motion.div>}
+                        {verifierData && <motion.div variants={fadeUp}><VerificationBadge verification={verifierData} /></motion.div>}
                         {executorData && <motion.div variants={fadeUp}><ExecutorPanel execution={executorData} /></motion.div>}
 
                         {fullResult && (
@@ -318,9 +355,21 @@ export default function DeliberationPanel() {
                                     )}
                                 </div>
                                 {fullResult.verdict && (
-                                    <div className="flex flex-wrap items-center gap-6 bg-[#040810] rounded-xl p-4 border border-slate-700/15">
-                                        <div><span className="text-[10px] text-slate-600 uppercase tracking-wider">Score</span><p className="text-2xl font-black text-blue-400 tabular-nums">{fullResult.verdict.overall_score?.toFixed(1)}%</p></div>
-                                        {fullResult.verification && <div className="pl-6 border-l border-slate-700/20"><span className="text-[10px] text-slate-600 uppercase tracking-wider">Verified</span><p className="text-2xl font-black text-emerald-400 tabular-nums">{fullResult.verification.confidence}%</p></div>}
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center gap-6 bg-[#040810] rounded-xl p-4 border border-slate-700/15">
+                                            <div><span className="text-[10px] text-slate-600 uppercase tracking-wider">Score</span><p className="text-2xl font-black text-blue-400 tabular-nums">{fullResult.verdict.overall_score?.toFixed(1)}%</p></div>
+                                            {fullResult.verification && <div className="pl-6 border-l border-slate-700/20"><span className="text-[10px] text-slate-600 uppercase tracking-wider">Verified</span><p className="text-2xl font-black text-emerald-400 tabular-nums">{fullResult.verification.confidence}%</p></div>}
+                                            {fullResult.verification && <div className="pl-6 border-l border-slate-700/20"><span className="text-[10px] text-slate-600 uppercase tracking-wider">Decision</span><p className={`text-lg font-bold ${fullResult.verdict.decision === 'APPROVE' ? 'text-emerald-400' : 'text-yellow-400'}`}>{fullResult.verdict.decision}</p></div>}
+                                        </div>
+                                        {fullResult.verification?.proof && (
+                                            <div className="bg-[#040810] rounded-xl p-3.5 border border-slate-700/15">
+                                                <p className="text-[10px] text-slate-600 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
+                                                    <Shield className="w-3 h-3" />
+                                                    Proof Hash (0G Log)
+                                                </p>
+                                                <p className="text-[11px] font-mono text-emerald-400/80 break-all">{fullResult.verification.proof}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </motion.div>
