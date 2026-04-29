@@ -460,7 +460,7 @@ MIT License — see [LICENSE](./LICENSE) for details.
 
 <div align="center">
 
-**Built for the 0G Hackathon** 🏗️
+**Built for the ETH GLOBAL Hackathon** 🏗️
 
 *Autonomous agents that think, verify, evolve, and compete — all on 0G.*
 
