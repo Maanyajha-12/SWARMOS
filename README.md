@@ -1,344 +1,354 @@
-# 🌐 SWARM OS — Autonomous Multi-Agent System with 0G Compute Verification
+<div align="center">
 
-**Production-Ready Multi-Agent Deliberation System with Verifiable Autonomous Decisions via 0G Compute + Agent Breeding & Evolution**
+# 🐝 SWARM OS
+
+### Autonomous Multi-Agent Deliberation System with 0G Compute Verification
+
+[![Built with 0G](https://img.shields.io/badge/Built%20with-0G%20Network-blueviolet?style=for-the-badge)](https://0g.ai)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8-363636?style=for-the-badge&logo=solidity)](https://soliditylang.org/)
+
+**Four autonomous AI agents deliberate, verify, and execute decisions — with on-chain proof.**
+
+[Quick Start](#-quick-start) · [Architecture](#-architecture) · [Demo Guide](#-demo-guide) · [API Reference](#-api-reference)
+
+</div>
 
 ---
 
-## 🎯 What Makes This Special
+## 🎯 What is SWARM OS?
 
-| Traditional Multi-Agent | **SWARM OS** |
-|---|---|
-| Agents talk → decisions made → execute | Agents talk → decisions **verified on 0G Compute** → cryptographic proof → execute |
-| No way to prove correctness | Every decision has a **mathematical proof** |
-| Static agents | Agents **breed and evolve** across generations |
+SWARM OS is a **multi-agent orchestration system** where four specialized AI agents collaborate to deliberate on complex requests:
+
+| Agent | Role | What It Does |
+|-------|------|-------------|
+| 🧠 **Planner** | Strategy | Breaks down prompts into actionable step-by-step plans |
+| 🔍 **Researcher** | Verification | Fact-checks claims and gathers supporting evidence |
+| ⚖️ **Critic** | Evaluation | Scores plans across feasibility, safety, legality, cost |
+| ⚡ **Executor** | Action | Executes approved plans (simulation or on-chain) |
+
+Every decision is **verified on 0G Compute** and results are stored in **0G Storage** — creating an auditable, decentralized record of AI reasoning.
 
 ---
 
-## 🚀 Quick Start (3 minutes)
+## ✨ Key Features
+
+### Phase 1: Multi-Agent Deliberation
+- **4-agent pipeline** — Planner → Researcher → Critic → Executor
+- **Real-time WebSocket streaming** — watch agents think live
+- **0G Compute verification** — cryptographic proof of decision integrity
+- **0G Storage** — all sessions, plans, and evidence stored on-chain (with in-memory fallback)
+- **Revision loops** — Critic can reject plans, triggering automatic replanning
+- **LLM fallback** — Anthropic (primary) → OpenAI (automatic fallback)
+
+### Phase 2: Agent Breeding & Evolution
+- **Genetic breeding system** — select two agents, breed offspring with combined traits
+- **6-dimensional trait model** — reasoning, creativity, caution, speed, accuracy, adaptability
+- **Crossover + mutation** — child traits = average of parents ± random mutation
+- **Generation tracking** — Gen 0 → Gen 1 → Gen 2... with full heritage chain
+- **Compatibility scoring** — measures genetic diversity between potential parents
+- **Visual gallery** — browse, compare, and select agents for breeding
+
+### Phase 3: Agent Arena (Tournament System)
+- **Competitive tournaments** — 4 agents compete across 5 rounds
+- **Natural selection** — top performers breed, improving subsequent generations
+- **Custom prompts** — run tournaments with any deliberation scenario
+- **Global leaderboard** — all-time rankings with win rates and scores
+- **Tournament history** — track evolution of agent performance over time
+- **Zero API cost** — tournament logic runs locally with mock scoring
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    SWARM OS Frontend                     │
+│  React 18 + Vite + TailwindCSS + Custom Dark Theme      │
+│                                                         │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐ │
+│  │Deliberate│ │ Gallery  │ │  Arena   │ │  Agents    │ │
+│  │  Panel   │ │& Breeding│ │Tournament│ │  Monitor   │ │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └─────┬──────┘ │
+│       │            │            │              │        │
+│       └────────────┴────────────┴──────────────┘        │
+│                        │ WebSocket + REST                │
+└────────────────────────┼────────────────────────────────┘
+                         │
+┌────────────────────────┼────────────────────────────────┐
+│               SWARM OS Backend (Node.js)                 │
+│                        │                                 │
+│  ┌─────────┐  ┌────────┴────────┐  ┌─────────────────┐ │
+│  │ Express │  │ Swarm           │  │ Breeding Engine │ │
+│  │  + WS   │  │ Orchestrator    │  │ + Traits Mgr   │ │
+│  └────┬────┘  └───┬──┬──┬──┬───┘  └────────┬────────┘ │
+│       │          │  │  │  │                 │          │
+│       │    ┌─────┘  │  │  └─────┐           │          │
+│       │    ▼        ▼  ▼        ▼           │          │
+│       │ Planner Researcher Critic Executor   │          │
+│       │    │        │  │        │           │          │
+│       │    └────────┴──┴────────┘           │          │
+│       │              │                      │          │
+│  ┌────┴──────────────┴──────────────────────┴────────┐ │
+│  │              0G Integration Layer                  │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │ │
+│  │  │ 0G KV    │  │ 0G Log   │  │ 0G Compute       │ │ │
+│  │  │ Storage  │  │ Storage  │  │ Verification     │ │ │
+│  │  └──────────┘  └──────────┘  └──────────────────┘ │ │
+│  └───────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────┘
+                         │
+┌────────────────────────┼────────────────────────────────┐
+│           Smart Contracts (Solidity/Foundry)             │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  DeliberationINFT.sol — On-chain agent NFTs        │ │
+│  │  with trait storage, breeding, and heritage        │ │
+│  └────────────────────────────────────────────────────┘ │
+│  Deployed on: 0G Testnet (evmrpc-testnet.0g.ai)        │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js 18+** (`node --version`)
-- **Anthropic API Key** (get one at [console.anthropic.com](https://console.anthropic.com))
 
-### 1. Backend
+- **Node.js** ≥ 18
+- **npm** ≥ 9
+- An **Anthropic** or **OpenAI** API key (at least one required)
 
-```bash
-cd backend
-npm install
-
-# Set your Anthropic API key
-echo 'ANTHROPIC_API_KEY=sk-ant-YOUR_KEY_HERE' > .env
-echo 'PORT=5000' >> .env
-echo 'NODE_ENV=development' >> .env
-
-npm run dev
-# ✓ Server running on http://localhost:5000
-# ✓ 4 demo agents seeded automatically
-# ✓ In-memory storage fallback active
-```
-
-### 2. Frontend
+### 1. Clone & Install
 
 ```bash
-cd frontend
-npm install
-npm run dev
-# ✓ App opens on http://localhost:3000
+git clone https://github.com/Maanyajha-12/SWARMOS.git
+cd SWARMOS
+
+# Backend
+cd backend && npm install && cd ..
+
+# Frontend
+cd frontend && npm install && cd ..
 ```
 
-### 3. Open Browser
+### 2. Configure Environment
 
-Go to **http://localhost:3000** — you're ready!
+```bash
+# Copy the example and fill in your API key(s)
+cp .env.example backend/.env
+```
+
+Edit `backend/.env` — you need **at least one** LLM key:
+```env
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+OPENAI_API_KEY=sk-proj-your-key-here    # automatic fallback
+```
+
+### 3. Run
+
+```bash
+# Terminal 1 — Backend
+cd backend && npm run dev
+
+# Terminal 2 — Frontend
+cd frontend && npm run dev
+```
+
+### 4. Open
+
+Navigate to **http://localhost:5173** — you'll see the SWARM OS dashboard.
 
 ---
 
-## 📋 Environment Variables
+## 📖 Demo Guide
 
-### Backend (`backend/.env`)
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | **Yes** | — | Your Anthropic API key for Claude |
-| `PORT` | No | `5000` | Server port |
-| `NODE_ENV` | No | `development` | Environment |
-| `OG_KV_ENDPOINT` | No | `http://localhost:8080` | 0G KV store (falls back to in-memory) |
-| `OG_LOG_ENDPOINT` | No | `http://localhost:8081` | 0G Log store (falls back to in-memory) |
-| `OG_COMPUTE_ENDPOINT` | No | `http://localhost:8082` | 0G Compute (falls back to simulated) |
-| `OG_COMPUTE_API_KEY` | No | `test-key` | 0G Compute API key |
-| `RPC_URL` | No | `https://evmrpc-testnet.0g.ai` | Blockchain RPC |
-| `PRIVATE_KEY` | No | — | Wallet private key (for on-chain execution) |
-| `DELIBERATION_INFT_ADDRESS` | No | — | Deployed iNFT contract address |
-
-### Frontend (`frontend/.env`)
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `VITE_API_URL` | No | `http://localhost:5000` | Backend API URL |
-
-> **Note:** The only **required** variable is `ANTHROPIC_API_KEY`. Everything else has sensible defaults with automatic fallbacks.
+See **[DEMO_GUIDE.md](./DEMO_GUIDE.md)** for a complete walkthrough with:
+- Step-by-step demo script
+- Talking points for each feature
+- Suggested prompts to showcase
+- Troubleshooting tips
 
 ---
 
-## 📊 System Architecture
+## 🔌 API Reference
 
-```
-┌─────────────────────────────────────────────────┐
-│          React Frontend (Vite + TailwindCSS)     │
-│   • Deliberation Panel  • Agent Pipeline View    │
-│   • Gallery & Breeding  • Real-time WebSocket    │
-└──────────────────┬──────────────────────────────┘
-                   │ HTTP + WebSocket
-                   ↓
-┌─────────────────────────────────────────────────┐
-│       Node.js/Express Backend (TypeScript)       │
-│  • SwarmOrchestrator (4 agents)                  │
-│  • 0G Compute Verification                       │
-│  • Breeding Engine + Traits Manager              │
-│  • WebSocket Real-Time Updates                   │
-└──────────────────┬──────────────────────────────┘
-                   │
-       ┌───────────┼───────────┐
-       ↓           ↓           ↓
-    0G KV       0G Log     0G Compute
-   (State)    (History)  (Verification)
-       │           │           │
-       └───────────┼───────────┘
-                   ↓
-         ┌─────────────────┐
-         │  Smart Contract  │
-         │ DeliberationINFT │
-         └─────────────────┘
-```
+### Deliberation
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/deliberate` | Start a new deliberation session |
+| `GET`  | `/api/sessions` | List all completed sessions |
+| `GET`  | `/api/session/:id` | Get session details |
+
+### Agents
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/agents` | List all agents with stats |
+| `GET`  | `/api/agent/:name/stats` | Get specific agent stats |
+| `GET`  | `/api/health` | System health check |
+| `GET`  | `/api/stats` | System-wide statistics |
+
+### Gallery & Breeding
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/gallery/agents` | List all agent profiles |
+| `POST` | `/api/breeding/breed` | Create offspring from two parents |
+| `GET`  | `/api/breeding/predict/:p1/:p2` | Preview offspring traits |
+| `GET`  | `/api/breeding/history` | Breeding event log |
+| `GET`  | `/api/breeding/traits/:tokenId` | Get agent trait details |
+
+### Arena (Tournaments)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/arena/tournament` | Run a standard tournament |
+| `POST` | `/api/arena/custom-tournament` | Tournament with custom prompt |
+| `GET`  | `/api/arena/leaderboard` | Global agent leaderboard |
+| `GET`  | `/api/arena/history` | Past tournament results |
+| `GET`  | `/api/arena/stats` | Arena-wide statistics |
+
+### 0G Storage
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/0g/kv/:key` | Read from 0G KV store |
+| `POST` | `/api/0g/kv/:key` | Write to 0G KV store |
+| `GET`  | `/api/0g/log/:name` | Read from 0G Log |
+| `POST` | `/api/0g/log/:name` | Append to 0G Log |
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, Vite 5, TailwindCSS 3, TypeScript, Lucide Icons |
+| **Backend** | Node.js 18+, Express 4, WebSocket (ws), TypeScript |
+| **AI/LLM** | Anthropic Claude (primary), OpenAI GPT-4 Turbo (fallback) |
+| **Storage** | 0G KV + 0G Log (with in-memory fallback) |
+| **Verification** | 0G Compute Network |
+| **Contracts** | Solidity 0.8, Foundry, deployed on 0G Testnet |
+| **Design** | Inter + JetBrains Mono fonts, glassmorphism dark theme |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-swarm-os/
+SWARMOS/
 ├── backend/
 │   ├── src/
-│   │   ├── index.ts             # Express + WebSocket server + all endpoints
-│   │   ├── agents.ts            # 4 agents (Planner, Researcher, Critic, Executor)
-│   │   ├── compute-verifier.ts  # 0G Compute verification
-│   │   ├── og-storage.ts        # 0G KV/Log with in-memory fallback
-│   │   ├── breeding.ts          # Crossover algorithm + BreedingEngine
-│   │   └── traits.ts            # TraitsManager for agent DNA
-│   ├── .env
+│   │   ├── index.ts              # Express server + WebSocket + all API routes
+│   │   ├── agents.ts             # 4 AI agents + orchestrator (Anthropic/OpenAI)
+│   │   ├── breeding.ts           # Genetic crossover + mutation engine
+│   │   ├── traits.ts             # Trait management + demo agent seeding
+│   │   ├── og-storage.ts         # 0G KV/Log integration (+ in-memory fallback)
+│   │   └── compute-verifier.ts   # 0G Compute verification layer
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── frontend/
 │   ├── src/
+│   │   ├── App.tsx               # Main app shell with 6-tab navigation
+│   │   ├── index.css             # Premium design system (Inter, dark theme)
 │   │   ├── components/
-│   │   │   ├── DeliberationPanel.tsx   # Full agent pipeline with real-time updates
-│   │   │   ├── AgentMonitor.tsx        # Agent status cards
-│   │   │   ├── VerdictPanel.tsx        # Critic verdict with scores
-│   │   │   ├── VerificationBadge.tsx   # 0G Compute proof display
-│   │   │   ├── ExecutorPanel.tsx       # Transaction details
-│   │   │   ├── Gallery.tsx            # iNFT gallery + breeding UI
-│   │   │   ├── BreedingModal.tsx      # Breed preview + confirm
-│   │   │   ├── TraitsDisplay.tsx      # Agent trait bars
-│   │   │   ├── SessionHistory.tsx     # Past sessions
-│   │   │   └── SystemStats.tsx        # System statistics
+│   │   │   ├── DeliberationPanel.tsx   # Main deliberation interface
+│   │   │   ├── ArenaPanel.tsx         # Tournament system (4 sub-tabs)
+│   │   │   ├── Gallery.tsx            # Agent gallery + breeding selection
+│   │   │   ├── BreedingModal.tsx      # Breeding preview + confirm modal
+│   │   │   ├── AgentMonitor.tsx       # Real-time agent status cards
+│   │   │   ├── VerdictPanel.tsx       # Critic scoring visualization
+│   │   │   ├── VerificationBadge.tsx  # 0G compute verification display
+│   │   │   ├── ExecutorPanel.tsx      # Execution result display
+│   │   │   ├── TraitsDisplay.tsx      # 6-trait radar/bar visualization
+│   │   │   ├── SessionHistory.tsx     # Past session timeline
+│   │   │   └── SystemStats.tsx        # System-wide statistics dashboard
 │   │   ├── services/
-│   │   │   ├── websocket.ts           # WebSocket client
-│   │   │   └── api.ts                 # HTTP client
-│   │   ├── App.tsx                    # Main app with 5 tabs
-│   │   ├── main.tsx                   # Entry point
-│   │   └── vite-env.d.ts             # Vite type declarations
-│   ├── .env
+│   │   │   ├── websocket.ts      # WebSocket manager (auto-reconnect)
+│   │   │   └── api.ts            # REST API client
+│   │   └── styles/
+│   │       └── Arena.css         # Arena-specific premium styles
+│   ├── index.html
 │   ├── package.json
 │   └── vite.config.ts
 │
 ├── contracts/
 │   ├── src/
-│   │   └── DeliberationINFT.sol       # ERC721 with compute proof
+│   │   └── DeliberationINFT.sol  # Agent NFT with on-chain traits
 │   ├── script/
-│   │   └── Deploy.s.sol
+│   │   └── Deploy.s.sol          # Foundry deployment script
+│   ├── test/
+│   │   └── DeliberationINFT.t.sol
 │   └── foundry.toml
 │
-└── README.md
+├── .env.example                  # Template (safe to commit)
+├── .gitignore
+├── DEMO_GUIDE.md                 # Step-by-step demo walkthrough
+├── README.md                     # This file
+└── setup-all.sh                  # One-command setup script
 ```
 
 ---
 
-## 🔄 How It Works
+## 🔑 How It Works
 
-### Deliberation Flow (Phase 1)
-
-```
-User submits prompt
-    ↓
-🧠 Planner Agent → Creates structured plan (steps, costs, timeline)
-    ↓
-🔍 Researcher Agent → Verifies claims, gathers evidence
-    ↓
-⚖️ Critic Agent → Scores feasibility/safety/legality/cost → APPROVE or REVISE
-    ↓
-🛡️ 0G Compute Verifier → Cryptographic proof of decision correctness
-    ↓
-▶️ Executor Agent → Simulates or executes on-chain
-    ↓
-✅ Result with verification proof
-```
-
-All updates stream to the frontend via WebSocket in real-time.
-
-### Agent Breeding (Phase 2)
+### Deliberation Flow
 
 ```
-Parent 1 (#1001, Gen 0)  ×  Parent 2 (#1002, Gen 0)
-    Score: 87%                   Score: 84%
-        ↓                            ↓
-    Extract Traits              Extract Traits
-    (6 DNA dimensions)          (6 DNA dimensions)
-        ↓                            ↓
-        └──────── CROSSOVER ─────────┘
+User Prompt → Planner → Researcher → Critic → 0G Verify → Executor
+                                        │
+                                        ├─ Score ≥ 75 → APPROVE → Execute
+                                        └─ Score < 75 → REVISE  → Re-plan (max 2 revisions)
+```
+
+### LLM Fallback Strategy
+
+```
+Request → Try Anthropic Claude
+              │
+              ├─ ✓ Success → return response
+              └─ ✗ Failed → Try OpenAI GPT-4 Turbo
+                                │
+                                ├─ ✓ Success → return response
+                                └─ ✗ Failed → return empty (graceful degradation)
+```
+
+### Breeding Algorithm
+
+```
+Parent A traits: [85, 72, 90, 68, 95, 78]
+Parent B traits: [78, 88, 65, 92, 70, 85]
                       ↓
-           Average traits ± mutation (±5)
-                      ↓
-         Child Agent (#54321, Gen 1)
-              Score: ~86%
-         Inherits best traits from parents
-```
-
-**Agent Traits (DNA):**
-| Trait | Description |
-|-------|------------|
-| 🧠 Reasoning | Logical analysis quality |
-| 🎨 Creativity | Novel approach generation |
-| 🛡️ Caution | Risk awareness |
-| ⚡ Speed | Response efficiency |
-| 🎯 Accuracy | Factual correctness |
-| 🔄 Adaptability | Situation flexibility |
-
----
-
-## 📊 API Reference
-
-### Deliberation
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/deliberate` | Start deliberation `{prompt, mode}` |
-| `GET` | `/api/session/:id` | Get session result |
-| `GET` | `/api/sessions` | List all sessions |
-
-### Agents
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/agents` | List all agents with stats |
-| `GET` | `/api/agent/:name/stats` | Individual agent stats |
-
-### Gallery & Breeding
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/gallery/agents` | All agent profiles with traits |
-| `POST` | `/api/breeding/breed` | Breed two agents `{parent1Id, parent2Id}` |
-| `GET` | `/api/breeding/predict/:p1/:p2` | Preview offspring |
-| `GET` | `/api/breeding/history` | Breeding log |
-| `GET` | `/api/breeding/traits/:tokenId` | Agent traits |
-
-### 0G Storage
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/0g/kv/:key` | Read from KV store |
-| `POST` | `/api/0g/kv/:key` | Write to KV store |
-| `GET` | `/api/0g/log/:logName` | Read from Log store |
-
-### System
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/api/stats` | System statistics |
-
-### WebSocket Events
-```
-Connect to: ws://localhost:5000
-
-Incoming events:
-  "agent_update"          → { agent, event, data }
-  "deliberation_complete" → { session_id, result }
-  "deliberation_error"    → { error }
-  "agent_bred"            → { data: BreedingResult }
+Child = average ± mutation(±5)
+Child traits:    [83, 81, 76, 82, 84, 80]
 ```
 
 ---
 
-## 🎮 Demo Guide
+## 🏆 Innovation Highlights
 
-### Demo 1: Full Deliberation (2 min)
-
-1. Open **http://localhost:3000**
-2. In the **Deliberate** tab, type: `Create a governance proposal for treasury allocation`
-3. Select **Simulation** mode
-4. Click **Start Deliberation**
-5. Watch the agent pipeline light up in real-time:
-   - 🧠 Planner creates a structured plan
-   - 🔍 Researcher verifies claims
-   - ⚖️ Critic scores and approves/revises
-   - 🛡️ 0G Verifier generates cryptographic proof
-   - ▶️ Executor simulates execution
-6. See the final result with scores, verification badge, and transaction hash
-
-### Demo 2: Agent Gallery & Breeding (1 min)
-
-1. Click the **Gallery** tab
-2. See 4 seeded agents with trait bars (reasoning, creativity, etc.)
-3. Click **Agent #1001** (selected as Parent 1)
-4. Click **Agent #1003** (selected as Parent 2)
-5. Click **Predict & Breed**
-6. Review the breeding modal showing:
-   - Parent trait comparison
-   - Predicted offspring traits
-   - Compatibility score
-7. Click **Confirm Breeding**
-8. New Gen 1 agent appears in the gallery!
-
-### Demo 3: System Monitoring (30 sec)
-
-1. **Agents** tab → Live agent status and success rates
-2. **History** tab → All past deliberation sessions
-3. **Statistics** tab → System-wide metrics
+1. **0G Compute Verification** — Every agent decision is cryptographically verified before execution
+2. **Dual LLM Architecture** — Seamless Anthropic → OpenAI fallback with zero downtime
+3. **Agent Evolution** — Breeding system creates progressively better agents
+4. **Decentralized Storage** — All deliberation data stored on 0G Network
+5. **Real-time Collaboration** — WebSocket streaming shows agents thinking in real-time
+6. **Tournament System** — Competitive arena drives natural selection
 
 ---
 
-## 🔧 Troubleshooting
+## 📄 License
 
-| Problem | Solution |
-|---------|----------|
-| Backend won't start | Check `ANTHROPIC_API_KEY` is set in `backend/.env` |
-| Frontend shows "Disconnected" | Make sure backend is running on port 5000 |
-| "0G services unavailable" message | Normal — app uses in-memory fallback automatically |
-| Deliberation fails | Verify your Anthropic API key is valid |
-| Gallery shows no agents | Restart backend — demo agents are seeded on startup |
+MIT License — see [LICENSE](./LICENSE) for details.
 
 ---
 
-## 📈 Performance
+<div align="center">
 
-| Component | Time | Notes |
-|-----------|------|-------|
-| Planner | 2-3s | Claude API call |
-| Researcher | 3-5s | Claude API analysis |
-| Critic | 2-3s | Claude evaluation |
-| 0G Verification | <1s | Simulated (3-5s with real 0G) |
-| Executor | <1s | Simulation mode |
-| **Total** | **~10-15s** | Full cycle |
+**Built for theEthGlobal Hackathon** 🏗️
 
----
+*Autonomous agents that think, verify, evolve, and compete.*
 
-## 🧬 Phase 2: Agent Breeding
-
-The breeding system allows agents to evolve across generations:
-
-- **Crossover Algorithm**: Child traits = average of parents ± random mutation (±5)
-- **Generation Tracking**: Gen 0 (original) → Gen 1 (bred) → Gen 2 ...
-- **Compatibility Score**: Measures genetic diversity between parents
-- **Heritage Tracking**: Full ancestry chain stored per agent
-
----
-
-**Status**: ✅ Production Ready  
-**Tech Stack**: Node.js + React + Vite + TailwindCSS + Foundry + 0G  
-**Innovation**: 0G Compute Verification + Agent Breeding Evolution  
+</div>
