@@ -606,7 +606,7 @@ export class SwarmOrchestrator extends EventEmitter {
         let verification: ComputeVerification | undefined;
         try {
           const verifier = getComputeVerifier();
-          verification = await verifier.verifyDecisionSimulated(plan, evidence, verdict);
+          verification = await verifier.verifyDecision(plan, evidence, verdict);
 
           // Store verification in 0G Log
           await this.ogStorage.appendLog(

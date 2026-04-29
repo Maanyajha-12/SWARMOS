@@ -1,8 +1,26 @@
 // backend/src/compute-verifier.ts
-// 0G Compute Verification Integration - Verifies decisions on-chain
+// 0G Compute Verification — Uses the 0G Compute Network for trustless AI verification
+// Falls back to local simulation when 0G Compute is unavailable
+//
+// How it works:
+//   1. Takes plan + evidence + verdict from the deliberation pipeline
+//   2. Sends the data to 0G Compute (Serving Broker) for independent AI verification
+//   3. 0G runs inference inside a TEE (Trusted Execution Environment)
+//   4. Returns a cryptographic proof hash + verification scores
+//   5. Falls back to local simulation when 0G Compute is unreachable
+//
+// Getting 0G Compute Endpoints:
+//   - Testnet: https://serving-broker-testnet.0g.ai
+//   - Mainnet: https://serving-broker.0g.ai
+//   - Docs: https://docs.0g.ai → Compute Network
+//   - GitHub: https://github.com/0gfoundation/0g-compute-ts-starter-kit
 
 import axios from "axios";
 import crypto from "crypto";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface ComputeVerificationInput {
   plan: {
@@ -32,6 +50,9 @@ export interface ComputeVerificationResult {
   timestamp: string;
   computeHash: string;
   message: string;
+  verificationSource: "0g-compute" | "local-simulation"; // Which path was used
+  teeVerified?: boolean; // Whether TEE verification was used
+  providerAddress?: string; // 0G Compute provider that ran verification
   decision_confidence?: number; // 0-100
   feasibility_verified?: number; // 0-100
   safety_verified?: number; // 0-100
@@ -40,21 +61,73 @@ export interface ComputeVerificationResult {
   overall_verification?: number; // 0-100
 }
 
+// ============================================================================
+// 0G Compute Network — Available Models
+// ============================================================================
+//
+// Testnet (evmrpc-testnet.0g.ai):
+//   - qwen/qwen-2.5-7b-instruct   → Provider: 0xa48f01287233509FD694a22Bf840225062E67836
+//   - openai/gpt-oss-20b           → Provider: 0x8e60d466FD16798Bec4868aa4CE38586D5590049
+//   - google/gemma-3-27b-it        → Provider: 0x69Eb5a0BD7d0f4bF39eD5CE9Bd3376c61863aE08
+//
+// Mainnet (evmrpc.0g.ai):
+//   - deepseek-ai/DeepSeek-V3.1   → Provider: 0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C
+//   - openai/gpt-oss-120b         → Provider: 0xBB3f5b0b5062CB5B3245222C5917afD1f6e13aF6
+//   - qwen/qwen2.5-vl-72b-instruct → Provider: 0x4415ef5CBb415347bb18493af7cE01f225Fc0868
+//
+// All services use TeeML verification (Trusted Execution Environment)
+
+const OG_TESTNET_PROVIDERS = {
+  "qwen/qwen-2.5-7b-instruct": "0xa48f01287233509FD694a22Bf840225062E67836",
+  "openai/gpt-oss-20b": "0x8e60d466FD16798Bec4868aa4CE38586D5590049",
+  "google/gemma-3-27b-it": "0x69Eb5a0BD7d0f4bF39eD5CE9Bd3376c61863aE08",
+};
+
+// ============================================================================
+// Compute Verifier Class
+// ============================================================================
+
 export class ComputeVerifier {
   private endpoint: string;
   private apiKey: string;
+  private providerAddress: string;
+  private model: string;
+  private useOGCompute: boolean = false;
   private maxRetries: number = 3;
   private retryDelay: number = 1000;
 
   constructor(endpoint: string, apiKey: string) {
     this.endpoint = endpoint;
     this.apiKey = apiKey;
+
+    // Default to Qwen 2.5 on testnet (fastest, lowest cost)
+    this.model = process.env.OG_COMPUTE_MODEL || "qwen/qwen-2.5-7b-instruct";
+    this.providerAddress =
+      process.env.OG_COMPUTE_PROVIDER_ADDRESS ||
+      OG_TESTNET_PROVIDERS["qwen/qwen-2.5-7b-instruct"];
   }
 
   /**
-   * Verify decision using 0G Compute
-   * Sends plan, evidence, and verdict for verification
-   * Returns cryptographic proof of computation
+   * Initialize — probe 0G Compute endpoint to determine availability
+   */
+  async initialize(): Promise<void> {
+    const healthy = await this.healthCheck();
+    if (healthy) {
+      this.useOGCompute = true;
+      console.log(
+        `[0G Compute] ✓ Connected to ${this.endpoint} (model: ${this.model})`
+      );
+    } else {
+      this.useOGCompute = false;
+      console.log(
+        `[0G Compute] ⚠ Endpoint unavailable — using local simulation`
+      );
+    }
+  }
+
+  /**
+   * Verify a deliberation decision
+   * Tries 0G Compute first, falls back to local simulation
    */
   async verifyDecision(
     plan: any,
@@ -63,97 +136,164 @@ export class ComputeVerifier {
   ): Promise<ComputeVerificationResult> {
     console.log("[ComputeVerifier] Starting verification...");
 
-    try {
-      const verificationPayload = {
-        task: "decision_verification",
-        input: { plan, evidence, verdict },
-        model: "claude-opus-4-1",
-        verification_task: this.buildVerificationPrompt(plan, evidence, verdict),
-        return_proof: true,
-      };
-
-      // Attempt verification with retries
-      let result: any;
-      let lastError: Error | null = null;
-
-      for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-        try {
-          result = await this.sendVerificationRequest(verificationPayload);
-          break;
-        } catch (error) {
-          lastError = error as Error;
-          console.log(
-            `[ComputeVerifier] Attempt ${attempt}/${this.maxRetries} failed:`,
-            lastError.message
-          );
-
-          if (attempt < this.maxRetries) {
-            await this.delay(this.retryDelay * attempt);
-          }
-        }
+    // Try 0G Compute if available
+    if (this.useOGCompute) {
+      try {
+        return await this.verifyVia0GCompute(plan, evidence, verdict);
+      } catch (error) {
+        console.warn(
+          "[ComputeVerifier] 0G Compute failed, falling back to simulation:",
+          (error as Error).message
+        );
       }
-
-      if (!result) {
-        throw lastError || new Error("0G Compute verification failed after retries");
-      }
-
-      // Parse verification results
-      const verificationScores = this.parseVerificationResponse(result);
-
-      // Generate proof hash
-      const proofData = JSON.stringify({
-        input: { plan, evidence, verdict },
-        result: verificationScores,
-        timestamp: new Date().toISOString(),
-      });
-
-      const proof = crypto.createHash("sha256").update(proofData).digest("hex");
-
-      const verification: ComputeVerificationResult = {
-        verified: verificationScores.overall_verification >= 75,
-        confidence: verificationScores.overall_verification,
-        proof: `0x${proof}`,
-        timestamp: new Date().toISOString(),
-        computeHash: result.proof_hash || `hash_${Date.now()}`,
-        message: `Decision verified with ${verificationScores.overall_verification}% confidence`,
-        decision_confidence: verificationScores.decision_confidence,
-        feasibility_verified: verificationScores.feasibility_verified,
-        safety_verified: verificationScores.safety_verified,
-        legality_verified: verificationScores.legality_verified,
-        cost_verified: verificationScores.cost_verified,
-        overall_verification: verificationScores.overall_verification,
-      };
-
-      console.log(
-        `[ComputeVerifier] ✓ Verification complete (Confidence: ${verification.confidence}%)`
-      );
-      return verification;
-    } catch (error) {
-      console.error("[ComputeVerifier] Error:", error);
-      throw error;
     }
+
+    // Fallback: local simulation
+    return this.verifyDecisionSimulated(plan, evidence, verdict);
   }
 
+  // ========================================================================
+  // 0G Compute Network Path
+  // ========================================================================
+
   /**
-   * Simulate verification (for testing without 0G connection)
+   * Send verification request to 0G Compute Network via Serving Broker
+   * Uses the OpenAI-compatible chat completion API that 0G exposes
+   */
+  private async verifyVia0GCompute(
+    plan: any,
+    evidence: any,
+    verdict: any
+  ): Promise<ComputeVerificationResult> {
+    console.log(`[0G Compute] Sending verification to ${this.model}...`);
+
+    const verificationPrompt = this.buildVerificationPrompt(plan, evidence, verdict);
+
+    let result: any;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        // 0G Compute uses an OpenAI-compatible API
+        const response = await axios.post(
+          `${this.endpoint}/v1/chat/completions`,
+          {
+            model: this.model,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a verification agent for autonomous AI decisions. Respond ONLY with valid JSON.",
+              },
+              { role: "user", content: verificationPrompt },
+            ],
+            max_tokens: 512,
+            temperature: 0.1,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.apiKey}`,
+            },
+            timeout: 30000,
+          }
+        );
+
+        result = response.data;
+        break;
+      } catch (error) {
+        lastError = error as Error;
+        console.log(
+          `[0G Compute] Attempt ${attempt}/${this.maxRetries} failed:`,
+          lastError.message
+        );
+        if (attempt < this.maxRetries) {
+          await this.delay(this.retryDelay * attempt);
+        }
+      }
+    }
+
+    if (!result) {
+      throw lastError || new Error("0G Compute verification failed after retries");
+    }
+
+    // Parse the AI response
+    const aiText =
+      result.choices?.[0]?.message?.content || result.result || "";
+    const verificationScores = this.parseVerificationResponse(aiText);
+
+    // Generate cryptographic proof hash from input + output
+    const proofData = JSON.stringify({
+      input: { plan, evidence, verdict },
+      result: verificationScores,
+      model: this.model,
+      provider: this.providerAddress,
+      timestamp: new Date().toISOString(),
+    });
+    const proof = crypto.createHash("sha256").update(proofData).digest("hex");
+
+    // Extract the 0G compute proof if available (TEE signature)
+    const teeProof = result.proof_hash || result.tee_signature || null;
+
+    const verification: ComputeVerificationResult = {
+      verified: verificationScores.overall_verification >= 75,
+      confidence: verificationScores.overall_verification,
+      proof: `0x${proof}`,
+      timestamp: new Date().toISOString(),
+      computeHash: teeProof || `0g_${Date.now()}`,
+      message: `Decision verified via 0G Compute (${this.model}) — ${verificationScores.overall_verification}% confidence`,
+      verificationSource: "0g-compute",
+      teeVerified: !!teeProof,
+      providerAddress: this.providerAddress,
+      decision_confidence: verificationScores.decision_confidence,
+      feasibility_verified: verificationScores.feasibility_verified,
+      safety_verified: verificationScores.safety_verified,
+      legality_verified: verificationScores.legality_verified,
+      cost_verified: verificationScores.cost_verified,
+      overall_verification: verificationScores.overall_verification,
+    };
+
+    console.log(
+      `[0G Compute] ✓ Verified via ${this.model} (Confidence: ${verification.confidence}%)`
+    );
+    return verification;
+  }
+
+  // ========================================================================
+  // Local Simulation Path (fallback)
+  // ========================================================================
+
+  /**
+   * Simulate verification locally when 0G Compute is unavailable
+   * Uses deterministic scoring based on input quality
    */
   async verifyDecisionSimulated(
     plan: any,
     evidence: any,
     verdict: any
   ): Promise<ComputeVerificationResult> {
-    console.log("[ComputeVerifier] Running simulated verification...");
+    console.log("[ComputeVerifier] Running local simulation...");
 
-    // Calculate confidence based on input scores
+    // Calculate confidence from input quality metrics
     const avgScore =
       (verdict.feasibility + verdict.safety + verdict.legality + verdict.cost_efficiency) / 4;
 
-    // Add some randomness for realism
-    const confidence = Math.min(100, Math.max(60, avgScore + (Math.random() * 20 - 10)));
+    // Evidence quality boost
+    const evidenceBoost = evidence.confidence_overall
+      ? evidence.confidence_overall * 10
+      : 0;
+
+    // Plan quality boost
+    const planBoost = plan.feasibility_score ? plan.feasibility_score * 0.1 : 0;
+
+    const confidence = Math.min(
+      100,
+      Math.max(60, avgScore + evidenceBoost + planBoost + (Math.random() * 10 - 5))
+    );
 
     const proofData = JSON.stringify({
       input: { plan, evidence, verdict },
-      confidence: confidence,
+      confidence,
       timestamp: new Date().toISOString(),
       simulator: true,
     });
@@ -165,8 +305,10 @@ export class ComputeVerifier {
       confidence: Math.round(confidence),
       proof: `0x${proof}`,
       timestamp: new Date().toISOString(),
-      computeHash: `sim_hash_${Date.now()}`,
-      message: `[SIMULATED] Decision verified with ${Math.round(confidence)}% confidence`,
+      computeHash: `sim_${Date.now()}`,
+      message: `[Simulated] Decision verified with ${Math.round(confidence)}% confidence`,
+      verificationSource: "local-simulation",
+      teeVerified: false,
       decision_confidence: Math.round(confidence),
       feasibility_verified: verdict.feasibility,
       safety_verified: verdict.safety,
@@ -176,13 +318,12 @@ export class ComputeVerifier {
     };
   }
 
-  /**
-   * Build verification prompt for Claude
-   */
-  private buildVerificationPrompt(plan: any, evidence: any, verdict: any): string {
-    return `You are a verification agent for autonomous multi-agent decisions.
+  // ========================================================================
+  // Helpers
+  // ========================================================================
 
-Analyze the following deliberation and provide verification scores (0-100) on whether each verdict score is justified:
+  private buildVerificationPrompt(plan: any, evidence: any, verdict: any): string {
+    return `Verify this autonomous multi-agent deliberation decision.
 
 PLAN:
 - Steps: ${plan.steps?.length || 0}
@@ -192,16 +333,17 @@ PLAN:
 EVIDENCE:
 - Claims analyzed: ${evidence.claims_analyzed}
 - Claims verified: ${evidence.claims_verified}
-- Confidence: ${(evidence.confidence_overall * 100).toFixed(1)}%
+- Confidence: ${((evidence.confidence_overall || 0) * 100).toFixed(1)}%
 
 VERDICT:
 - Feasibility: ${verdict.feasibility}%
 - Safety: ${verdict.safety}%
 - Legality: ${verdict.legality}%
 - Cost Efficiency: ${verdict.cost_efficiency}%
-- Overall Score: ${verdict.overall_score}%
+- Overall: ${verdict.overall_score}%
 - Decision: ${verdict.decision}
 
+Score each dimension 0-100 on whether the verdict is justified by the plan and evidence.
 Respond with ONLY valid JSON (no markdown):
 {
   "feasibility_verified": 85,
@@ -213,36 +355,11 @@ Respond with ONLY valid JSON (no markdown):
 }`;
   }
 
-  /**
-   * Send verification request to 0G Compute endpoint
-   */
-  private async sendVerificationRequest(payload: any): Promise<any> {
-    const response = await axios.post(`${this.endpoint}/compute/verify`, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      timeout: 30000,
-    });
-
-    if (response.status !== 200) {
-      throw new Error(`0G Compute returned status ${response.status}`);
-    }
-
-    return response.data;
-  }
-
-  /**
-   * Parse verification response from 0G Compute
-   */
   private parseVerificationResponse(data: any): any {
     try {
-      // Extract JSON from response
       let parsed = data;
 
-      // If data is a string, try to parse it
       if (typeof data === "string") {
-        // Try to extract JSON if embedded in text
         const jsonMatch = data.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           parsed = JSON.parse(jsonMatch[0]);
@@ -251,22 +368,28 @@ Respond with ONLY valid JSON (no markdown):
         }
       }
 
-      return {
-        feasibility_verified: Math.min(100, Math.max(0, parsed.feasibility_verified || 0)),
-        safety_verified: Math.min(100, Math.max(0, parsed.safety_verified || 0)),
-        legality_verified: Math.min(100, Math.max(0, parsed.legality_verified || 0)),
-        cost_verified: Math.min(100, Math.max(0, parsed.cost_verified || 0)),
-        decision_confidence: Math.min(100, Math.max(0, parsed.decision_confidence || 0)),
-        overall_verification:
-          Math.min(100, Math.max(0, parsed.decision_confidence || 0)) ||
-          Math.round(
-            ((Math.min(100, Math.max(0, parsed.feasibility_verified || 0)) +
-              Math.min(100, Math.max(0, parsed.safety_verified || 0)) +
-              Math.min(100, Math.max(0, parsed.legality_verified || 0)) +
-              Math.min(100, Math.max(0, parsed.cost_verified || 0))) /
-              4)
-          ),
+      const clamp = (v: number) => Math.min(100, Math.max(0, v || 0));
+
+      const scores = {
+        feasibility_verified: clamp(parsed.feasibility_verified),
+        safety_verified: clamp(parsed.safety_verified),
+        legality_verified: clamp(parsed.legality_verified),
+        cost_verified: clamp(parsed.cost_verified),
+        decision_confidence: clamp(parsed.decision_confidence),
+        overall_verification: 0,
       };
+
+      scores.overall_verification =
+        scores.decision_confidence ||
+        Math.round(
+          (scores.feasibility_verified +
+            scores.safety_verified +
+            scores.legality_verified +
+            scores.cost_verified) /
+            4
+        );
+
+      return scores;
     } catch (error) {
       console.error("[ComputeVerifier] Parse error:", error);
       return {
@@ -280,31 +403,27 @@ Respond with ONLY valid JSON (no markdown):
     }
   }
 
-  /**
-   * Delay utility for retries
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Health check for 0G Compute endpoint
-   */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await axios.get(`${this.endpoint}/health`, {
+      // Try to hit the 0G Compute services list endpoint
+      const response = await axios.get(`${this.endpoint}/v1/models`, {
+        headers: { Authorization: `Bearer ${this.apiKey}` },
         timeout: 5000,
       });
       return response.status === 200;
-    } catch (_error) {
-      console.warn("[ComputeVerifier] Health check failed");
-      return false;
+    } catch {
+      // Try alternative health check
+      try {
+        const response = await axios.get(`${this.endpoint}/health`, {
+          timeout: 3000,
+        });
+        return response.status === 200;
+      } catch {
+        return false;
+      }
     }
   }
 
-  /**
-   * Get verification statistics
-   */
   async getStats(): Promise<{
     average_confidence: number;
     total_verifications: number;
@@ -312,29 +431,31 @@ Respond with ONLY valid JSON (no markdown):
   }> {
     try {
       const response = await axios.get(`${this.endpoint}/stats`, {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+        headers: { Authorization: `Bearer ${this.apiKey}` },
         timeout: 5000,
       });
       return response.data;
-    } catch (_error) {
-      return {
-        average_confidence: 0,
-        total_verifications: 0,
-        approval_rate: 0,
-      };
+    } catch {
+      return { average_confidence: 0, total_verifications: 0, approval_rate: 0 };
     }
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
-// Export singleton instance
+// ============================================================================
+// Singleton
+// ============================================================================
+
 let verifierInstance: ComputeVerifier | null = null;
 
 export function getComputeVerifier(): ComputeVerifier {
   if (!verifierInstance) {
-    const endpoint = process.env.OG_COMPUTE_ENDPOINT || "http://localhost:8082";
-    const apiKey = process.env.OG_COMPUTE_API_KEY || "test-key";
+    const endpoint =
+      process.env.OG_COMPUTE_ENDPOINT || "https://serving-broker-testnet.0g.ai";
+    const apiKey = process.env.OG_COMPUTE_API_KEY || "";
     verifierInstance = new ComputeVerifier(endpoint, apiKey);
   }
   return verifierInstance;

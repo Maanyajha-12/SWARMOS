@@ -1,6 +1,33 @@
 // backend/src/og-storage.ts
-// 0G Storage Interface (KV + Log) with In-Memory Fallback
-// When 0G endpoints are unreachable, data is stored in memory so the app works locally
+// ============================================================================
+// 0G Storage Interface — KV Store + Log Store
+// ============================================================================
+//
+// 0G Network provides two storage primitives:
+//
+// 1. **0G KV Store** — key-value storage (agent profiles, session data)
+//    - Self-hosted: Run `0g-storage-kv` node locally
+//    - GitHub: https://github.com/0gfoundation/0g-storage-kv
+//    - Default: http://localhost:8080
+//
+// 2. **0G Log Store** — append-only log (deliberation history, verification logs)
+//    - Self-hosted: Run `0g-storage-node` locally
+//    - GitHub: https://github.com/0gfoundation/0g-storage-node
+//    - Default: http://localhost:8081
+//
+// When 0G services are unreachable, ALL operations automatically fall back
+// to in-memory storage so the application always works.
+//
+// How to run 0G Storage locally:
+//   1. Clone https://github.com/0gfoundation/0g-storage-node
+//   2. cargo build --release
+//   3. Configure RPC endpoint (evmrpc-testnet.0g.ai)
+//   4. ./target/release/zgs_node --config run/config.toml
+//
+//   Then clone https://github.com/0gfoundation/0g-storage-kv
+//   and run similarly for KV operations.
+//
+// ============================================================================
 
 import fetch from "node-fetch";
 
@@ -13,29 +40,69 @@ export class OGStorage {
   private memoryKV: Map<string, any> = new Map();
   private memoryLog: Map<string, any[]> = new Map();
 
+  // Metrics
+  private metrics = {
+    kv_writes: 0,
+    kv_reads: 0,
+    log_appends: 0,
+    log_reads: 0,
+    fallback_count: 0,
+  };
+
   constructor(kvEndpoint: string, logEndpoint: string) {
     this.kvEndpoint = kvEndpoint;
     this.logEndpoint = logEndpoint;
   }
 
+  // ========================================================================
+  // Initialization
+  // ========================================================================
+
   /**
-   * Check if 0G services are available, fall back to in-memory if not
+   * Probe 0G services. Falls back to in-memory if unreachable.
    */
   async initialize(): Promise<void> {
     const isHealthy = await this.healthCheck();
     if (!isHealthy) {
-      console.log("[0G Storage] ⚠ External 0G services unavailable — using in-memory fallback");
+      console.log(
+        "[0G Storage] ⚠ External 0G services unavailable — using in-memory fallback"
+      );
+      console.log(
+        "[0G Storage]   To connect: run 0g-storage-node (Log) and 0g-storage-kv (KV) locally"
+      );
+      console.log(
+        "[0G Storage]   Docs: https://github.com/0gfoundation/0g-storage-node"
+      );
       this.useInMemory = true;
     } else {
       console.log("[0G Storage] ✓ Connected to external 0G services");
+      console.log(`[0G Storage]   KV:  ${this.kvEndpoint}`);
+      console.log(`[0G Storage]   Log: ${this.logEndpoint}`);
     }
   }
 
-  // ========== KV Store Operations ==========
+  /**
+   * Returns whether we're using in-memory fallback
+   */
+  isUsingFallback(): boolean {
+    return this.useInMemory;
+  }
 
+  // ========================================================================
+  // KV Store Operations — key-value storage
+  // ========================================================================
+
+  /**
+   * Set a value in the 0G KV store
+   * Used for: agent profiles, session metadata, breeding records
+   */
   async setKV(key: string, value: any): Promise<boolean> {
+    this.metrics.kv_writes++;
+    const serialized =
+      typeof value === "string" ? value : JSON.parse(JSON.stringify(value));
+
     if (this.useInMemory) {
-      this.memoryKV.set(key, typeof value === "string" ? value : JSON.parse(JSON.stringify(value)));
+      this.memoryKV.set(key, serialized);
       console.log(`[0G KV:mem] SET: ${key}`);
       return true;
     }
@@ -51,21 +118,30 @@ export class OGStorage {
       } as any);
 
       if (response.ok) {
+        // Also cache in memory for fast reads
+        this.memoryKV.set(key, serialized);
         console.log(`[0G KV] SET: ${key}`);
         return true;
       }
-      // Fall back to memory on failure
-      this.memoryKV.set(key, typeof value === "string" ? value : JSON.parse(JSON.stringify(value)));
+      // Fall back to memory on HTTP error
+      this.memoryKV.set(key, serialized);
+      this.metrics.fallback_count++;
       return true;
     } catch (error) {
-      // Silent fallback to memory
-      this.memoryKV.set(key, typeof value === "string" ? value : JSON.parse(JSON.stringify(value)));
+      // Silent fallback to memory on network error
+      this.memoryKV.set(key, serialized);
+      this.metrics.fallback_count++;
       console.log(`[0G KV:mem] SET (fallback): ${key}`);
       return true;
     }
   }
 
+  /**
+   * Get a value from the 0G KV store
+   */
   async getKV(key: string): Promise<any> {
+    this.metrics.kv_reads++;
+
     if (this.useInMemory) {
       const value = this.memoryKV.get(key);
       return value !== undefined ? value : null;
@@ -82,10 +158,13 @@ export class OGStorage {
         const data = (await response.json()) as any;
         const value = data.value;
 
-        // Try to parse as JSON
         try {
-          return typeof value === "string" ? JSON.parse(value) : value;
+          const parsed = typeof value === "string" ? JSON.parse(value) : value;
+          // Update memory cache
+          this.memoryKV.set(key, parsed);
+          return parsed;
         } catch {
+          this.memoryKV.set(key, value);
           return value;
         }
       }
@@ -96,6 +175,9 @@ export class OGStorage {
     }
   }
 
+  /**
+   * Delete a key from the 0G KV store
+   */
   async deleteKV(key: string): Promise<boolean> {
     if (this.useInMemory) {
       this.memoryKV.delete(key);
@@ -118,7 +200,8 @@ export class OGStorage {
   }
 
   /**
-   * List all keys matching a prefix (in-memory only for now)
+   * List all keys matching a prefix
+   * Used for: listing all agents, all sessions, etc.
    */
   async listKeys(prefix: string): Promise<string[]> {
     const keys: string[] = [];
@@ -143,9 +226,17 @@ export class OGStorage {
     return results;
   }
 
-  // ========== Log Store Operations ==========
+  // ========================================================================
+  // Log Store Operations — append-only event log
+  // ========================================================================
 
+  /**
+   * Append an entry to the 0G Log store
+   * Used for: deliberation logs, verification proofs, breeding history
+   */
   async appendLog(logName: string, entry: any): Promise<boolean> {
+    this.metrics.log_appends++;
+
     const entryWithTimestamp = {
       ...entry,
       timestamp: entry.timestamp || new Date().toISOString(),
@@ -174,6 +265,11 @@ export class OGStorage {
       } as any);
 
       if (response.ok) {
+        // Also keep in memory for fast reads
+        if (!this.memoryLog.has(logName)) {
+          this.memoryLog.set(logName, []);
+        }
+        this.memoryLog.get(logName)!.push(entryWithTimestamp);
         console.log(`[0G Log] APPEND: ${logName}`);
         return true;
       }
@@ -182,18 +278,25 @@ export class OGStorage {
         this.memoryLog.set(logName, []);
       }
       this.memoryLog.get(logName)!.push(entryWithTimestamp);
+      this.metrics.fallback_count++;
       return true;
     } catch (error) {
       if (!this.memoryLog.has(logName)) {
         this.memoryLog.set(logName, []);
       }
       this.memoryLog.get(logName)!.push(entryWithTimestamp);
+      this.metrics.fallback_count++;
       console.log(`[0G Log:mem] APPEND (fallback): ${logName}`);
       return true;
     }
   }
 
+  /**
+   * Read entries from the 0G Log store
+   */
   async getLog(logName: string, limit: number = 100): Promise<any[]> {
+    this.metrics.log_reads++;
+
     if (this.useInMemory) {
       const entries = this.memoryLog.get(logName) || [];
       return entries.slice(-limit);
@@ -203,17 +306,13 @@ export class OGStorage {
       const response = await fetch(`${this.logEndpoint}/log/read`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          log: logName,
-          limit,
-        }),
+        body: JSON.stringify({ log: logName, limit }),
       } as any);
 
       if (response.ok) {
         const data = (await response.json()) as any;
         const entries = data.entries || [];
 
-        // Parse JSON entries
         return entries.map((entry: any) => {
           try {
             return typeof entry === "string" ? JSON.parse(entry) : entry;
@@ -228,12 +327,18 @@ export class OGStorage {
     }
   }
 
-  // ========== Utility Methods ==========
+  // ========================================================================
+  // Utility
+  // ========================================================================
 
   async healthCheck(): Promise<boolean> {
     try {
-      const kvResponse = await fetch(`${this.kvEndpoint}/health`, { timeout: 3000 } as any);
-      const logResponse = await fetch(`${this.logEndpoint}/health`, { timeout: 3000 } as any);
+      const kvResponse = await fetch(`${this.kvEndpoint}/health`, {
+        timeout: 3000,
+      } as any);
+      const logResponse = await fetch(`${this.logEndpoint}/health`, {
+        timeout: 3000,
+      } as any);
 
       return kvResponse.ok && logResponse.ok;
     } catch {
@@ -242,14 +347,22 @@ export class OGStorage {
   }
 
   /**
-   * Get storage stats
+   * Get comprehensive storage stats
    */
   getStats() {
     return {
-      mode: this.useInMemory ? "in-memory" : "0g-external",
+      mode: this.useInMemory ? "in-memory-fallback" : "0g-external",
+      endpoints: {
+        kv: this.kvEndpoint,
+        log: this.logEndpoint,
+      },
       kv_keys: this.memoryKV.size,
       log_streams: this.memoryLog.size,
-      log_entries: Array.from(this.memoryLog.values()).reduce((sum, arr) => sum + arr.length, 0),
+      log_total_entries: Array.from(this.memoryLog.values()).reduce(
+        (sum, arr) => sum + arr.length,
+        0
+      ),
+      metrics: this.metrics,
     };
   }
 }

@@ -9,6 +9,7 @@ import { SwarmOrchestrator } from "./agents";
 import { OGStorage } from "./og-storage";
 import { BreedingEngine } from "./breeding";
 import { TraitsManager } from "./traits";
+import { getComputeVerifier } from "./compute-verifier";
 
 dotenv.config();
 
@@ -38,11 +39,18 @@ const activeSessions: Map<string, any> = new Map();
 const connectedClients: Set<WebSocket> = new Set();
 
 // ============================================================================
-// Initialize Storage + Seed Data
+// Initialize Storage + Compute Verifier + Seed Data
 // ============================================================================
 
 async function initializeServices() {
+    // 1. Initialize 0G Storage (KV + Log)
     await ogStorage.initialize();
+
+    // 2. Initialize 0G Compute Verifier
+    const verifier = getComputeVerifier();
+    await verifier.initialize();
+
+    // 3. Seed demo agents
     await traitsManager.seedDemoAgents();
     console.log("[Init] ✓ Services initialized");
 }
