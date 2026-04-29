@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Loader, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Loader, Clock, CheckCircle, AlertCircle, History, RefreshCw } from 'lucide-react'
 
 interface Session {
-    session_id: string
-    prompt: string
-    status: string
-    created_at: string
-    completed_at?: string
-    score?: number
-    decision?: string
+    session_id: string; prompt: string; status: string; created_at: string
+    completed_at?: string; score?: number; decision?: string
 }
 
 export default function SessionHistory() {
@@ -20,26 +16,13 @@ export default function SessionHistory() {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || ''
             const response = await fetch(`${apiUrl}/api/sessions`)
-            if (response.ok) {
-                const data = await response.json()
-                setSessions(data.sessions || [])
-                setError('')
-            } else {
-                setError('Failed to fetch sessions')
-            }
-        } catch (err) {
-            setError('Backend not reachable')
-            console.error(err)
-        } finally {
-            setLoading(false)
-        }
+            if (response.ok) { const data = await response.json(); setSessions(data.sessions || []); setError('') }
+            else setError('Failed to fetch sessions')
+        } catch (err) { setError('Backend not reachable'); console.error(err) }
+        finally { setLoading(false) }
     }
 
-    useEffect(() => {
-        fetchSessions()
-        const interval = setInterval(fetchSessions, 8000)
-        return () => clearInterval(interval)
-    }, [])
+    useEffect(() => { fetchSessions(); const interval = setInterval(fetchSessions, 8000); return () => clearInterval(interval) }, [])
 
     const getTimeAgo = (dateStr: string) => {
         const diff = Date.now() - new Date(dateStr).getTime()
@@ -51,86 +34,61 @@ export default function SessionHistory() {
         return `${Math.floor(hours / 24)}d ago`
     }
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader className="w-8 h-8 animate-spin text-blue-500" />
-            </div>
-        )
-    }
+    if (loading) return <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader className="w-10 h-10 animate-spin text-blue-500" /><p className="text-sm text-slate-600">Loading sessions...</p></div>
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Session History</h2>
-                <button
-                    onClick={fetchSessions}
-                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors text-sm"
-                >
-                    Refresh
-                </button>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <motion.div whileHover={{ scale: 1.1, rotate: 5 }} className="p-2.5 bg-gradient-to-br from-indigo-500/15 to-blue-500/15 rounded-xl border border-indigo-500/10">
+                        <History className="w-5 h-5 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                    </motion.div>
+                    <div><h2 className="text-xl font-bold text-white tracking-tight">Session History</h2><p className="text-xs text-slate-600 mt-0.5">Past deliberation sessions</p></div>
+                </div>
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchSessions} className="btn-ghost !rounded-xl">
+                    <RefreshCw className="w-4 h-4" /><span className="hidden sm:inline">Refresh</span>
+                </motion.button>
             </div>
 
-            {error && (
-                <div className="glass-effect rounded-xl p-4 text-center text-yellow-400 border border-yellow-500/20">
-                    {error} — sessions will appear after your first deliberation
-                </div>
-            )}
+            {error && <div className="glass-card p-5 text-center border-yellow-500/10"><p className="text-yellow-400 text-sm">{error} — sessions will appear after your first deliberation</p></div>}
 
             {sessions.length === 0 && !error ? (
-                <div className="glass-effect rounded-xl p-12 text-center">
-                    <Clock className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-400">No sessions yet — submit a deliberation to get started</p>
+                <div className="glass-card p-16 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#040810] flex items-center justify-center border border-slate-700/15"><Clock className="w-8 h-8 text-slate-700" /></div>
+                    <p className="text-slate-500 font-medium">No sessions yet</p><p className="text-slate-600 text-sm mt-1">Submit a deliberation to get started</p>
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {sessions.map((session) => (
-                        <div
-                            key={session.session_id}
-                            className="glass-effect rounded-lg p-4 border border-slate-700/50 hover:border-slate-600/50 transition-all hover:bg-slate-800/30"
+                    {sessions.map((session, idx) => (
+                        <motion.div key={session.session_id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.06, duration: 0.4, ease: [0.16,1,0.3,1] }}
+                            whileHover={{ x: 4, transition: { duration: 0.15 } }}
+                            className="glass-card p-4 sm:p-5 group cursor-default"
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                        <p className="text-sm font-mono text-slate-400">{session.session_id}</p>
-                                        <span
-                                            className={`px-2 py-0.5 rounded text-xs font-medium ${session.status === 'complete'
-                                                ? 'bg-green-500/20 text-green-400'
-                                                : 'bg-yellow-500/20 text-yellow-400'
-                                                }`}
-                                        >
-                                            {session.status}
-                                        </span>
-                                        {session.decision && (
-                                            <span
-                                                className={`px-2 py-0.5 rounded text-xs font-medium ${session.decision === 'APPROVE'
-                                                    ? 'bg-emerald-500/20 text-emerald-400'
-                                                    : 'bg-orange-500/20 text-orange-400'
-                                                    }`}
-                                            >
-                                                {session.decision}
-                                            </span>
-                                        )}
-                                        {session.score !== undefined && session.score > 0 && (
-                                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400">
-                                                Score: {session.score.toFixed(1)}%
-                                            </span>
-                                        )}
+                                    <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                                        <p className="text-[10px] font-mono text-slate-600 bg-[#040810] px-2 py-0.5 rounded-md border border-slate-700/10">{session.session_id}</p>
+                                        <span className={`badge ${session.status === 'complete' ? 'bg-emerald-500/8 text-emerald-400 border border-emerald-500/10' : 'bg-yellow-500/8 text-yellow-400 border border-yellow-500/10'}`}>{session.status}</span>
+                                        {session.decision && <span className={`badge ${session.decision === 'APPROVE' ? 'bg-emerald-500/8 text-emerald-400 border border-emerald-500/10' : 'bg-orange-500/8 text-orange-400 border border-orange-500/10'}`}>{session.decision}</span>}
+                                        {session.score !== undefined && session.score > 0 && <span className="badge bg-blue-500/8 text-blue-400 border border-blue-500/10">Score: {session.score.toFixed(1)}%</span>}
                                     </div>
-                                    <p className="text-white font-medium truncate">{session.prompt}</p>
-                                    <p className="text-xs text-slate-400 mt-2">
-                                        {getTimeAgo(session.created_at)}
-                                    </p>
+                                    <p className="text-white font-semibold truncate group-hover:text-blue-300 transition-colors">{session.prompt}</p>
+                                    <p className="text-[10px] text-slate-600 mt-2 flex items-center gap-1.5"><Clock className="w-3 h-3" />{getTimeAgo(session.created_at)}</p>
                                 </div>
-                                <div className="flex-shrink-0">
+                                <div className="flex-shrink-0 mt-1">
                                     {session.status === 'complete' ? (
-                                        <CheckCircle className="w-6 h-6 text-green-500" />
+                                        <motion.div whileHover={{ scale: 1.1 }} className="w-10 h-10 rounded-xl bg-emerald-500/8 flex items-center justify-center border border-emerald-500/10">
+                                            <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                        </motion.div>
                                     ) : (
-                                        <AlertCircle className="w-6 h-6 text-yellow-500" />
+                                        <div className="w-10 h-10 rounded-xl bg-yellow-500/8 flex items-center justify-center border border-yellow-500/10">
+                                            <AlertCircle className="w-5 h-5 text-yellow-400" />
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
             )}
