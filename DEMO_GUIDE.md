@@ -1,6 +1,4 @@
 # 🎬 SWARM OS — Demo Guide for Judges
-
-> **Duration:** 10-15 minutes  
 > **System:** 4 autonomous AI agents + 0G Compute + 0G Storage + 0G Chain  
 > **Core Innovation:** Trustless AI deliberation with decentralized verification
 
