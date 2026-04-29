@@ -21,7 +21,7 @@ Examples of unacceptable behavior:
 
 ## Enforcement
 
-Instances of unacceptable behavior may be reported to [maanya.jha12@gmail.com](mailto:maanya.jha12@gmail.com). All complaints will be reviewed and investigated.
+Instances of unacceptable behavior may be reported to [maanya_j@ch.iitr.ac.in](mailto:maanya_j@ch.iitr.ac.in). All complaints will be reviewed and investigated.
 
 ## Attribution
 
