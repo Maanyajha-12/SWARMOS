@@ -3,6 +3,7 @@
 // Complete implementation of Planner, Researcher, Critic, and Executor agents
 
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { EventEmitter } from "events";
 import { OGStorage } from "./og-storage";
 import { ComputeVerifier, getComputeVerifier } from "./compute-verifier";
@@ -91,6 +92,7 @@ interface DeliberationSession {
 abstract class BaseAgent extends EventEmitter {
   protected name: string;
   protected client: Anthropic;
+  protected openai: OpenAI;
   protected ogStorage: OGStorage;
   protected executionCount: number = 0;
   protected successCount: number = 0;
@@ -102,6 +104,56 @@ abstract class BaseAgent extends EventEmitter {
     this.client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || "",
+    });
+  }
+
+  /**
+   * Try Anthropic first; if it throws, fall back to OpenAI.
+   * This keeps the normal call-path identical to before.
+   */
+  protected async callLLM(
+    system: string,
+    userContent: string,
+    maxTokens: number = 1024
+  ): Promise<string> {
+    // ── Primary: Anthropic ──────────────────────────────────────────────────
+    try {
+      const msg = await this.client.messages.create({
+        model: "claude-opus-4-1",
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: "user", content: userContent }],
+      });
+      return msg.content[0].type === "text" ? msg.content[0].text : "";
+    } catch (anthropicErr: any) {
+      console.warn(
+        `[${this.name}] Anthropic failed (${anthropicErr?.status ?? anthropicErr?.message}), falling back to OpenAI…`
+      );
+    }
+
+    // ── Fallback: OpenAI ────────────────────────────────────────────────────
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      console.error(`[${this.name}] No OPENAI_API_KEY set — cannot fall back.`);
+      return "";
+    }
+    try {
+      const res = await this.openai.chat.completions.create({
+        model: "gpt-4-turbo",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userContent },
+        ],
+        max_tokens: maxTokens,
+      });
+      console.log(`[${this.name}] ✓ OpenAI fallback succeeded.`);
+      return res.choices[0].message.content ?? "";
+    } catch (openaiErr: any) {
+      console.error(`[${this.name}] OpenAI fallback also failed:`, openaiErr?.message);
+      return "";
+    }
   }
 
   protected async broadcast(eventType: string, data: any): Promise<void> {
@@ -183,15 +235,7 @@ Return ONLY valid JSON in this exact format:
     try {
       console.log(`[${this.name}] Planning: ${prompt.substring(0, 50)}...`);
 
-      const message = await this.client.messages.create({
-        model: "claude-opus-4-1",
-        max_tokens: 1024,
-        system: this.systemPrompt,
-        messages: [{ role: "user", content: prompt }],
-      });
-
-      const responseText =
-        message.content[0].type === "text" ? message.content[0].text : "";
+      const responseText = await this.callLLM(this.systemPrompt, prompt);
       const planData = this.parseJSON(responseText);
 
       const plan: Plan = {
@@ -271,15 +315,7 @@ Timeline: ${plan.timeline}
 
 Verify the claims and provide evidence.`;
 
-      const message = await this.client.messages.create({
-        model: "claude-opus-4-1",
-        max_tokens: 1024,
-        system: this.systemPrompt,
-        messages: [{ role: "user", content: researchPrompt }],
-      });
-
-      const responseText =
-        message.content[0].type === "text" ? message.content[0].text : "";
+      const responseText = await this.callLLM(this.systemPrompt, researchPrompt);
       const evidenceData = this.parseJSON(responseText);
 
       const evidence: Evidence = {
@@ -367,15 +403,7 @@ ${JSON.stringify(evidence, null, 2)}
 
 Provide a critical assessment with scores and recommendation.`;
 
-      const message = await this.client.messages.create({
-        model: "claude-opus-4-1",
-        max_tokens: 1024,
-        system: this.systemPrompt,
-        messages: [{ role: "user", content: critiquePrompt }],
-      });
-
-      const responseText =
-        message.content[0].type === "text" ? message.content[0].text : "";
+      const responseText = await this.callLLM(this.systemPrompt, critiquePrompt);
       const verdictData = this.parseJSON(responseText);
 
       const verdict: Verdict = {

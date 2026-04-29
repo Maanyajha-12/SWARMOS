@@ -25,6 +25,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "node-fetch": "^3.3.2",
+    "openai": "^6.35.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {
