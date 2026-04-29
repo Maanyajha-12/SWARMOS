@@ -533,8 +533,200 @@ app.get("/api/breeding/traits/:tokenId", async (req: Request, res: Response) => 
 });
 
 // ============================================================================
+// AGENT ARENA - TOURNAMENT SYSTEM
+// ============================================================================
+
+// POST /api/arena/tournament - Run a tournament
+app.post("/api/arena/tournament", async (req: Request, res: Response) => {
+    try {
+        const { prompt = "Create governance proposal", numRounds = 5 } = req.body;
+
+        const mockAgents = [
+            { id: 1001, name: "Alpha", baseScore: 87, generation: 0 },
+            { id: 1002, name: "Beta",  baseScore: 84, generation: 0 },
+            { id: 1003, name: "Gamma", baseScore: 81, generation: 0 },
+            { id: 1004, name: "Delta", baseScore: 78, generation: 0 },
+        ];
+
+        const tournamentId = `arena_${Date.now()}`;
+        const results: any[] = [];
+        let agents = JSON.parse(JSON.stringify(mockAgents));
+
+        for (let round = 1; round <= numRounds; round++) {
+            const roundResults = agents.map((agent: any) => {
+                const variance = (Math.random() - 0.5) * 10;
+                const roundScore = Math.max(0, Math.min(100, agent.baseScore + variance));
+                return {
+                    round,
+                    agent_id: agent.id,
+                    agent_name: agent.name,
+                    generation: agent.generation,
+                    score: Math.round(roundScore * 10) / 10,
+                    feedback:
+                        roundScore >= 85
+                            ? "Excellent performance with strong reasoning"
+                            : roundScore >= 75
+                            ? "Good execution with minor issues"
+                            : "Adequate but needs improvement",
+                    timestamp: new Date().toISOString(),
+                };
+            });
+
+            roundResults.sort((a: any, b: any) => b.score - a.score);
+            results.push(...roundResults);
+
+            if (round < numRounds) {
+                const parent1 = roundResults[0];
+                const parent2 = roundResults[1];
+                const improvement = (parent1.score + parent2.score) / 2 - agents.find((a: any) => a.id === parent1.agent_id)!.baseScore;
+                agents.forEach((agent: any) => {
+                    if (agent.id === parent1.agent_id || agent.id === parent2.agent_id) {
+                        agent.baseScore = Math.min(100, agent.baseScore + improvement * 0.3);
+                        agent.generation += 1;
+                    }
+                });
+            }
+        }
+
+        const finalRound = results.filter((r) => r.round === numRounds);
+        const winner = finalRound.sort((a, b) => b.score - a.score)[0];
+        const allScores = results.map((r) => r.score);
+
+        res.json({
+            tournament_id: tournamentId,
+            prompt,
+            rounds: numRounds,
+            results,
+            winner: {
+                agent_id: winner.agent_id,
+                agent_name: winner.agent_name,
+                score: winner.score,
+                generation: winner.generation,
+            },
+            statistics: {
+                average_score: (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(1),
+                highest_score: Math.max(...allScores),
+                lowest_score: Math.min(...allScores),
+                total_matchups: results.length,
+                avg_improvement_per_round: (
+                    ((Math.max(...allScores) - Math.min(...allScores)) / numRounds) * 100
+                ).toFixed(1),
+            },
+            created_at: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("[Arena] Tournament error:", error);
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// GET /api/arena/leaderboard
+app.get("/api/arena/leaderboard", async (_req: Request, res: Response) => {
+    try {
+        res.json({
+            leaderboard: [
+                { rank: 1, agent_id: 1001, agent_name: "Alpha", generation: 8,  wins: 23, losses: 2,  win_rate: 92, avg_score: 87.3, best_score: 98, total_earnings: 1250, breeding_count: 12 },
+                { rank: 2, agent_id: 1002, agent_name: "Beta",  generation: 6,  wins: 18, losses: 7,  win_rate: 72, avg_score: 84.2, best_score: 96, total_earnings: 980,  breeding_count: 8  },
+                { rank: 3, agent_id: 1003, agent_name: "Gamma", generation: 4,  wins: 12, losses: 13, win_rate: 48, avg_score: 81.1, best_score: 92, total_earnings: 650,  breeding_count: 5  },
+                { rank: 4, agent_id: 1004, agent_name: "Delta", generation: 2,  wins: 5,  losses: 20, win_rate: 20, avg_score: 78.4, best_score: 88, total_earnings: 320,  breeding_count: 2  },
+            ],
+            last_updated: new Date().toISOString(),
+            total_tournaments: 25,
+        });
+    } catch (error) {
+        console.error("[Arena] Leaderboard error:", error);
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// GET /api/arena/history
+app.get("/api/arena/history", async (req: Request, res: Response) => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 10;
+        const history = [
+            { tournament_id: "arena_1714150800000", round: 25, winner: "Alpha", avg_score: 87.3, participation: 4, timestamp: "2024-04-26T14:00:00Z" },
+            { tournament_id: "arena_1714147200000", round: 24, winner: "Alpha", avg_score: 86.1, participation: 4, timestamp: "2024-04-26T13:00:00Z" },
+            { tournament_id: "arena_1714143600000", round: 23, winner: "Beta",  avg_score: 84.5, participation: 4, timestamp: "2024-04-26T12:00:00Z" },
+            { tournament_id: "arena_1714140000000", round: 22, winner: "Alpha", avg_score: 85.2, participation: 4, timestamp: "2024-04-26T11:00:00Z" },
+            { tournament_id: "arena_1714136400000", round: 21, winner: "Gamma", avg_score: 82.8, participation: 4, timestamp: "2024-04-26T10:00:00Z" },
+        ];
+        res.json({ history: history.slice(0, limit), total_tournaments: 25, timestamp: new Date().toISOString() });
+    } catch (error) {
+        console.error("[Arena] History error:", error);
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// GET /api/arena/stats
+app.get("/api/arena/stats", async (_req: Request, res: Response) => {
+    try {
+        res.json({
+            total_tournaments: 25,
+            total_rounds: 125,
+            total_matchups: 500,
+            agents_active: 4,
+            highest_avg_score: 87.3,
+            lowest_avg_score: 78.4,
+            avg_winner_score: 85.6,
+            total_breeding_events: 27,
+            generations_created: 23,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("[Arena] Stats error:", error);
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// POST /api/arena/custom-tournament
+app.post("/api/arena/custom-tournament", async (req: Request, res: Response) => {
+    try {
+        const { prompt, num_agents = 4, num_rounds = 5 } = req.body;
+        if (!prompt) return res.status(400).json({ error: "Prompt required" });
+
+        const mockAgents = Array.from({ length: num_agents }, (_, i) => ({
+            id: 1000 + i,
+            name: String.fromCharCode(65 + i),
+            baseScore: 75 + Math.random() * 20,
+            generation: Math.floor(Math.random() * 5),
+        }));
+
+        const results: any[] = [];
+        for (let round = 1; round <= num_rounds; round++) {
+            const roundResults = mockAgents.map((agent) => {
+                const score = Math.max(0, Math.min(100, agent.baseScore + (Math.random() - 0.5) * 10));
+                return {
+                    round,
+                    agent_name: agent.name,
+                    agent_id: agent.id,
+                    generation: agent.generation,
+                    score: Math.round(score * 10) / 10,
+                    feedback: score >= 85 ? "Excellent performance" : score >= 75 ? "Good execution" : "Needs improvement",
+                };
+            });
+            roundResults.sort((a, b) => b.score - a.score);
+            results.push(...roundResults);
+        }
+
+        const finalRound = results.filter((r) => r.round === num_rounds).sort((a, b) => b.score - a.score);
+        res.json({
+            tournament_id: `arena_custom_${Date.now()}`,
+            prompt,
+            rounds: num_rounds,
+            results,
+            winner: finalRound[0],
+            created_at: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("[Arena] Custom tournament error:", error);
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// ============================================================================
 // System Endpoints
 // ============================================================================
+
 
 // GET /api/health - Health check
 app.get("/api/health", (_req: Request, res: Response) => {
