@@ -7,6 +7,7 @@ node_modules/
 dist/
 build/
 out/
+DEMO_GUIDE.md/
 
 # Environment variables (NEVER commit real keys)
 .env
