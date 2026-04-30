@@ -59,7 +59,7 @@ open http://localhost:3000              # Should show landing page
 
 **Actions:**
 1. Click **"Try Live Demo"** button (navigates to Deliberate tab)
-2. Type prompt: `Should we launch a decentralized governance token with quadratic voting?`
+2. Type prompt: 'Should we launch a decentralized governance token with quadratic voting?'?`
 3. Keep **Simulation** mode selected
 4. Click **Start Deliberation**
 5. **WATCH** — the 5 pipeline phases light up in sequence:

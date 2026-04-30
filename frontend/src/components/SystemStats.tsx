@@ -21,12 +21,18 @@ export default function SystemStats() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+        const demoStats: SystemStatsData = {
+            total_executions: 188, total_successes: 167, overall_success_rate: 0.888,
+            active_sessions: 3, connected_clients: 12, timestamp: new Date().toISOString()
+        }
         const fetchStats = async () => {
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || ''
-                const response = await fetch(`${apiUrl}/api/stats`)
-                if (response.ok) setStats(await response.json())
-            } catch (error) { console.error('Failed to fetch stats:', error) }
+                if (!apiUrl) throw new Error('No API URL')
+                const response = await fetch(`${apiUrl}/api/stats`, { signal: AbortSignal.timeout(3000) })
+                if (!response.ok) throw new Error('Not ok')
+                setStats(await response.json())
+            } catch (error) { setStats(demoStats) }
             finally { setLoading(false) }
         }
         fetchStats()

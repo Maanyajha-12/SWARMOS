@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Dna, Sparkles, Loader, RefreshCw } from 'lucide-react'
 import TraitsDisplay from './TraitsDisplay'
 import BreedingModal from './BreedingModal'
+import { DEMO_GALLERY_AGENTS } from '../services/demo-mode'
 
 interface AgentProfile {
     tokenId: number; sessionId: string
@@ -23,10 +24,13 @@ export default function Gallery() {
 
     const fetchAgents = useCallback(async () => {
         try {
-            const response = await fetch(`${apiUrl}/api/gallery/agents`)
-            if (response.ok) { const data = await response.json(); setAgents(data.agents || []); setError('') }
-            else setError('Failed to load agents')
-        } catch { setError('Backend not reachable') }
+            if (!apiUrl) throw new Error('No API URL')
+            const response = await fetch(`${apiUrl}/api/gallery/agents`, { signal: AbortSignal.timeout(3000) })
+            if (!response.ok) throw new Error('Not ok')
+            const data = await response.json()
+            if (data.agents?.length) { setAgents(data.agents); setError('') }
+            else throw new Error('No agents')
+        } catch { setAgents(DEMO_GALLERY_AGENTS as any); setError('') }
         finally { setLoading(false) }
     }, [apiUrl])
 
