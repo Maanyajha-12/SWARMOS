@@ -203,7 +203,7 @@ curl -X POST http://localhost:5000/api/poi/run \
 curl http://localhost:5000/api/cross-chain/leaderboard
 ```
 
-### Visual Verification
+### Visual 
 - [ ] Landing page loads with hero text and stats
 - [ ] All 8 tabs render without errors
 - [ ] Deliberation shows real-time pipeline
