@@ -5,12 +5,13 @@
 ### Trustless Multi-Agent AI Decision-Making for the Multi-Chain Future
 
 [![Built on 0G](https://img.shields.io/badge/Built%20on-0G%20Network-10b981?style=for-the-badge)](https://0g.ai)
-[![ETHGlobal](https://img.shields.io/badge/ETHGlobal-Hackathon-627eea?style=for-the-badge)](https://ethglobal.com)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge)](https://typescriptlang.org)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=for-the-badge)](https://soliditylang.org)
 
 **SWARM OS orchestrates autonomous AI agent swarms across multiple blockchains. Every decision is verified through 0G Compute TEE and recorded on-chain with cryptographic proof.**
 
-[Try Live Demo](#quick-start) · [Demo Script](#4-minute-demo-script) · [Architecture](#architecture) · [API Reference](#api-reference)
+🌐 **Live Demo**: [frontend-six-steel-45.vercel.app](https://frontend-six-steel-45.vercel.app)
 
 </div>
 
@@ -40,6 +41,7 @@ Multi-agent consensus with cryptographic proof — 4 agents analyze independentl
 | ⚔️ **Arena Tournaments** | Competitive elimination where agents evolve through competition |
 | 🌐 **Cross-Chain Swarms** | Agents operate across Ethereum, Polygon, and 0G Chain |
 | 📊 **Global Leaderboard** | Multi-chain score aggregation with per-chain rankings |
+| 🎭 **Demo Mode** | Full offline simulation — works without backend for judges |
 
 ---
 
@@ -47,20 +49,21 @@ Multi-agent consensus with cryptographic proof — 4 agents analyze independentl
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        FRONTEND (Vite + React)              │
-│  Landing → Deliberation → Gallery → Arena → Cross-Chain     │
+│                     FRONTEND (Vite + React)                 │
+│  Overview → Deliberate → Agents → Gallery → Arena           │
+│  Cross-Chain → History → Statistics                         │
 │  Framer Motion animations · Ultra-dark AI-native theme      │
 └────────────────────────┬────────────────────────────────────┘
                          │ REST + WebSocket
 ┌────────────────────────┴────────────────────────────────────┐
-│                     BACKEND (Node.js + Express)             │
+│                   BACKEND (Node.js + Express)               │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
 │  │ Planner  │ │Researcher│ │  Critic  │ │ Executor │       │
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘       │
 │       └─────────────┴────────────┴─────────────┘            │
 │  ┌─────────────┐ ┌───────────────┐ ┌──────────────────┐    │
-│  │ Breeding    │ │ Cross-Chain   │ │ Proof-of-Intel.  │    │
-│  │ Engine      │ │ Bridge        │ │ Consensus        │    │
+│  │  Breeding   │ │  Cross-Chain  │ │ Proof-of-Intel.  │    │
+│  │  Engine     │ │  Bridge       │ │ Consensus        │    │
 │  └─────────────┘ └───────────────┘ └──────────────────┘    │
 └────────────┬──────────────┬──────────────┬──────────────────┘
              │              │              │
@@ -71,9 +74,9 @@ Multi-agent consensus with cryptographic proof — 4 agents analyze independentl
              │
     ┌────────┴──────────────────────────────────────┐
     │              SMART CONTRACTS (Solidity)        │
-    │  DeliberationINFT · AgentRegistry             │
-    │  CrossChainBridge · TournamentArena           │
-    │  ProofOfIntelligence · CrossChainBreeding     │
+    │  AgentRegistry · CrossChainBridge             │
+    │  TournamentArena · ProofOfIntelligence        │
+    │  CrossChainBreeding                           │
     └───────────────────────────────────────────────┘
 ```
 
@@ -82,11 +85,12 @@ Multi-agent consensus with cryptographic proof — 4 agents analyze independentl
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or yarn
-- (Optional) Foundry for contracts
+- Foundry (optional, for contracts)
 
-### 1. Clone and Setup
+### 1. Clone
 
 ```bash
 git clone https://github.com/Maanyajha-12/SWARMOS.git
@@ -98,12 +102,11 @@ cd SWARMOS
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+cp .env.example .env   # then edit .env and add your ANTHROPIC_API_KEY
 npm run dev
 ```
 
-The backend starts at `http://localhost:5000`.
+Backend starts at `http://localhost:5000`.
 
 ### 3. Frontend
 
@@ -113,87 +116,100 @@ npm install
 npm run dev
 ```
 
-The frontend starts at `http://localhost:3000`.
+Frontend starts at `http://localhost:3000`.
 
-### Environment Variables
+> **Note:** The frontend has a built-in **demo mode** — if the backend is unreachable (e.g., on Vercel), all tabs automatically fall back to realistic demo data. No backend required to explore the UI.
 
-#### Backend (`backend/.env`)
+---
+
+## ⚙️ Environment Variables
+
+### Backend (`backend/.env`)
+
 ```env
-# REQUIRED — only key you need
+# REQUIRED
 ANTHROPIC_API_KEY=sk-ant-api03-YOUR_KEY_HERE
 
 # Server
 PORT=5000
 NODE_ENV=development
 
-# 0G Storage (optional — uses in-memory fallback if unavailable)
+# 0G Storage — optional, uses in-memory fallback if not set
 OG_KV_ENDPOINT=http://localhost:8080
 OG_LOG_ENDPOINT=http://localhost:8081
 
-# 0G Compute (optional — uses simulation if unavailable)
+# 0G Compute — optional, uses simulation if not set
 OG_COMPUTE_ENDPOINT=https://serving-broker-testnet.0g.ai
 OG_COMPUTE_MODEL=qwen/qwen-2.5-7b-instruct
 ```
 
-#### Frontend (`frontend/.env`)
+### Frontend (`frontend/.env`)
+
 ```env
 VITE_API_URL=http://localhost:5000
-``
+```
 
-# You can use this section at the end of the README.md for presentations.
+> **Security:** All `.env` files are listed in `.gitignore`. Only `.env.example` files are committed. Never commit real API keys.
 
-
+---
 
 ## 🔌 API Reference
 
 ### Deliberation
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/deliberate` | Start a deliberation session |
 | GET | `/api/sessions` | List all sessions |
 | GET | `/api/session/:id` | Get session details |
 
-### Agents
+### Agents & System
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/agents` | Get all agent stats |
-| GET | `/api/stats` | System statistics |
+| GET | `/api/agents` | Agent performance stats |
+| GET | `/api/stats` | System-wide statistics |
 | GET | `/api/health` | Health check |
 
-### Breeding & Gallery
+### Gallery & Breeding
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/gallery/agents` | List all agents with traits |
+| GET | `/api/gallery/agents` | All agents with trait data |
 | POST | `/api/breeding/breed` | Breed two agents |
-| GET | `/api/breeding/predict/:p1/:p2` | Preview offspring |
+| GET | `/api/breeding/predict/:p1/:p2` | Preview offspring traits |
 | GET | `/api/breeding/history` | Breeding log |
 
 ### Arena
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/arena/tournament` | Run tournament |
-| POST | `/api/arena/custom-tournament` | Custom prompt tournament |
-| GET | `/api/arena/leaderboard` | Agent leaderboard |
+| POST | `/api/arena/tournament` | Run a standard tournament |
+| POST | `/api/arena/custom-tournament` | Tournament with custom prompt |
+| GET | `/api/arena/leaderboard` | Agent rankings |
 | GET | `/api/arena/history` | Tournament history |
 | GET | `/api/arena/stats` | Arena statistics |
 
 ### Cross-Chain
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/cross-chain/status` | Bridge status + chain info |
 | GET | `/api/cross-chain/chains` | Supported chains |
 | GET | `/api/cross-chain/messages` | Recent bridge messages |
-| POST | `/api/cross-chain/send` | Send cross-chain message |
-| GET | `/api/cross-chain/leaderboard` | Global rankings |
+| POST | `/api/cross-chain/send` | Send a cross-chain message |
+| GET | `/api/cross-chain/leaderboard` | Global multi-chain rankings |
 
 ### Proof-of-Intelligence
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/poi/run` | Run PoI consensus |
+| POST | `/api/poi/run` | Run a PoI consensus round |
 | GET | `/api/poi/history` | Consensus history |
 | GET | `/api/poi/stats` | PoI statistics |
 
 ### 0G Storage
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/0g/kv/:key` | Read from 0G KV |
@@ -203,41 +219,43 @@ VITE_API_URL=http://localhost:5000
 
 ---
 
-## 🏆 Smart Contracts
+## ⛓️ Smart Contracts
 
-| Contract | Purpose | File |
-|----------|---------|------|
-| **DeliberationINFT** | ERC721 iNFT with deliberation metadata | `contracts/src/DeliberationINFT.sol` |
-| **AgentRegistry** | Global agent registry with cross-chain scoring | `contracts/src/AgentRegistry.sol` |
-| **CrossChainBridge** | Multi-chain message passing | `contracts/src/CrossChainBridge.sol` |
-| **TournamentArena** | Tournament with entry fees & prize distribution | `contracts/src/TournamentArena.sol` |
-| **ProofOfIntelligence** | On-chain commit-reveal consensus | `contracts/src/ProofOfIntelligence.sol` |
-| **CrossChainBreeding** | Cross-chain iNFT breeding with royalties | `contracts/src/CrossChainBreeding.sol` |
+| Contract | Purpose |
+|----------|---------|
+| **AgentRegistry** | Global agent registry with cross-chain scoring |
+| **CrossChainBridge** | Multi-chain message passing with relayer auth |
+| **TournamentArena** | On-chain tournaments with entry fees & prizes |
+| **ProofOfIntelligence** | On-chain commit-reveal consensus (novel PoI) |
+| **CrossChainBreeding** | Cross-chain iNFT breeding with royalty distribution |
+
+All contracts are in `contracts/src/` and compile with Foundry (`forge build`).
 
 ---
 
 ## 💰 Revenue Model
 
-| Stream | Amount | Split |
-|--------|--------|-------|
-| Tournament Entry Fees | 0.1 ETH/entry | Winner 70% · Protocol 30% |
-| iNFT Breeding Royalties | 5% secondary sales | Parents 2.5% · Protocol 2.5% |
+| Stream | Rate | Split |
+|--------|------|-------|
+| Tournament Entry Fees | 0.1 ETH / entry | Winner 70% · Protocol 30% |
+| iNFT Breeding Royalties | 5% of secondary sales | Parents 2.5% each · Protocol 2.5% |
 | Bridge Transaction Fees | 0.5% per message | Relayers 60% · Protocol 40% |
-| Enterprise API | $5K/month | Verifiable AI decision API |
+| Enterprise API | $5K / month | Verifiable AI decision API |
 
 ---
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 18 + TypeScript + Vite + Framer Motion |
-| **Styling** | Tailwind CSS + Custom glassmorphism design system |
-| **Backend** | Node.js + Express + WebSocket |
-| **AI** | Anthropic Claude (via API) |
+| **Frontend** | React 18 + TypeScript + Vite 5 + Framer Motion |
+| **Styling** | Tailwind CSS + custom glassmorphism design system |
+| **Backend** | Node.js + Express + WebSocket (`ws`) |
+| **AI** | Anthropic Claude via API |
 | **Verification** | 0G Compute TEE + SHA-256 proof hashes |
-| **Storage** | 0G KV + 0G Log (with in-memory fallback) |
+| **Storage** | 0G KV + 0G Log (in-memory fallback included) |
 | **Contracts** | Solidity 0.8.20 + Foundry |
+| **Deployment** | Vercel (frontend) · Railway or self-hosted (backend) |
 | **Chains** | 0G Newton Testnet · Ethereum Sepolia · Polygon Mumbai |
 
 ---
@@ -248,73 +266,92 @@ VITE_API_URL=http://localhost:5000
 SWARMOS/
 ├── backend/
 │   ├── src/
-│   │   ├── index.ts              # Express + WebSocket server
-│   │   ├── agents.ts             # 4 AI agents + orchestrator
-│   │   ├── breeding.ts           # Genetic crossover engine
-│   │   ├── traits.ts             # Agent trait management
-│   │   ├── compute-verifier.ts   # 0G Compute TEE verification
-│   │   ├── og-storage.ts         # 0G KV/Log with fallback
+│   │   ├── index.ts                    # Express + WebSocket server
+│   │   ├── agents.ts                   # 4 AI agents + orchestrator
+│   │   ├── breeding.ts                 # Genetic crossover engine
+│   │   ├── traits.ts                   # Agent trait management
+│   │   ├── compute-verifier.ts         # 0G Compute TEE verification
+│   │   ├── og-storage.ts              # 0G KV/Log with fallback
 │   │   ├── cross-chain/
-│   │   │   ├── bridge.ts         # Cross-chain message bridge
-│   │   │   └── leaderboard.ts    # Global multi-chain leaderboard
+│   │   │   ├── bridge.ts              # Cross-chain message bridge
+│   │   │   └── leaderboard.ts         # Global multi-chain leaderboard
 │   │   └── consensus/
-│   │       └── proof-of-intelligence.ts  # PoI commit-reveal
+│   │       └── proof-of-intelligence.ts  # PoI commit-reveal engine
+│   ├── .env.example
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx               # Main app with 8 tabs
+│   │   ├── App.tsx                     # Main app with 8 tabs
 │   │   ├── components/
-│   │   │   ├── LandingPage.tsx       # Business narrative landing
-│   │   │   ├── DeliberationPanel.tsx # Real-time agent pipeline
-│   │   │   ├── AgentMonitor.tsx      # Agent performance cards
-│   │   │   ├── Gallery.tsx           # Agent breeding gallery
-│   │   │   ├── ArenaPanel.tsx        # Tournament system
+│   │   │   ├── LandingPage.tsx         # Business narrative overview
+│   │   │   ├── DeliberationPanel.tsx   # Real-time agent pipeline
+│   │   │   ├── AgentMonitor.tsx        # Agent performance cards
+│   │   │   ├── Gallery.tsx             # Agent breeding gallery
+│   │   │   ├── ArenaPanel.tsx          # Tournament system
 │   │   │   ├── CrossChainDashboard.tsx # Multi-chain visualization
-│   │   │   ├── BreedingModal.tsx     # Genetic crossover UI
-│   │   │   ├── VerdictPanel.tsx      # Critic scoring
-│   │   │   ├── VerificationBadge.tsx # 0G proof display
-│   │   │   ├── ExecutorPanel.tsx     # Execution results
-│   │   │   ├── SessionHistory.tsx    # Past deliberations
-│   │   │   ├── SystemStats.tsx       # System metrics
-│   │   │   └── TraitsDisplay.tsx     # Trait bar visualization
+│   │   │   ├── BreedingModal.tsx       # Genetic crossover UI
+│   │   │   ├── VerdictPanel.tsx        # Critic scoring display
+│   │   │   ├── VerificationBadge.tsx   # 0G proof hash display
+│   │   │   ├── ExecutorPanel.tsx       # Execution results
+│   │   │   ├── SessionHistory.tsx      # Past deliberations
+│   │   │   ├── SystemStats.tsx         # System metrics
+│   │   │   └── TraitsDisplay.tsx       # Trait bar visualization
 │   │   └── services/
-│   │       ├── websocket.ts          # WebSocket manager
-│   │       ├── api.ts                # REST API client
-│   │       └── demo-mode.ts          # Offline demo simulation
+│   │       ├── websocket.ts            # WebSocket manager
+│   │       ├── api.ts                  # REST API client
+│   │       └── demo-mode.ts            # Offline demo simulation
 │   ├── vercel.json
+│   ├── .env.example
 │   └── package.json
 ├── contracts/
 │   └── src/
-│       ├── DeliberationINFT.sol
 │       ├── AgentRegistry.sol
 │       ├── CrossChainBridge.sol
 │       ├── TournamentArena.sol
 │       ├── ProofOfIntelligence.sol
 │       └── CrossChainBreeding.sol
+├── DEMO_GUIDE.md                       # 4-minute demo walkthrough
+├── SECURITY.md
 └── README.md
+```
+
+---
+
+## ✅ Build & Verify
+
+```bash
+# Frontend production build — must succeed with zero errors
+cd frontend && npm run build
+
+# Backend TypeScript check
+cd backend && npx tsc --noEmit
+
+# Contract compilation (requires Foundry)
+cd contracts && forge build
+
+# API health check (backend running)
+curl http://localhost:5000/api/health
 ```
 
 ---
 
 ## 🔒 Security
 
-- All `.env` files are in `.gitignore` — secrets are never committed
-- 0G Compute verification uses SHA-256 proof hashes
+- All `.env` files are excluded via `.gitignore` — no secrets are ever committed
+- 0G Compute verification uses SHA-256 proof hashes for tamper-evidence
 - Commit-reveal consensus prevents agent collusion
-- Smart contracts use access control with `onlyOwner` modifiers
-- See [SECURITY.md](SECURITY.md) for vulnerability reporting
+- Smart contracts use `onlyOwner` access control modifiers
+- See [SECURITY.md](SECURITY.md) for vulnerability reporting guidelines
 
 ---
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
-
-**Built with ❤️ for ETHGlobal Hackathon**
 
 Powered by [0G Network](https://0g.ai) · [Anthropic Claude](https://anthropic.com)
 
