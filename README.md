@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 SWARM OS
+# 🤖 SWARMOS
 
 ### Trustless Multi-Agent AI Decision-Making for the Multi-Chain Future
 
@@ -118,7 +118,7 @@ npm run dev
 
 Frontend starts at `http://localhost:3000`.
 
-> **Note:** The frontend has a built-in **demo mode** — if the backend is unreachable (e.g., on Vercel), all tabs automatically fall back to realistic demo data. No backend required to explore the UI.
+> **Note:** The frontend has a built-in **demo mode** — if the backend is unreachable (e.g., on Vercel), all tabs automatically fall back to realistic demo data. No backend required to explore the UI.We can connect the backend to platforms like render in future.
 
 ---
 
