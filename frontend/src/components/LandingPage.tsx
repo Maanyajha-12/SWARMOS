@@ -105,7 +105,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
         <motion.div variants={stagger} initial="initial" animate="animate" className="max-w-4xl mx-auto">
           <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/8 border border-blue-500/15 text-blue-400 text-xs font-semibold mb-8 tracking-wide">
             <Sparkles className="w-3.5 h-3.5" />
-            BUILT ON 0G NETWORK · ETHGLOBAL HACKATHON
+            BUILT ON 0G NETWORK
           </motion.div>
 
           <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1] mb-6">
