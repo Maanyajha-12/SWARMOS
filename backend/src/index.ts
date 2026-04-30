@@ -1,4 +1,4 @@
-// backend/src/index.ts — Express Server with WebSocket + Breeding Endpoints
+// backend/src/index.ts — Express Server with WebSocket + Breeding + Cross-Chain + PoI
 
 import express, { Request, Response } from "express";
 import { createServer } from "http";
@@ -10,6 +10,9 @@ import { OGStorage } from "./og-storage";
 import { BreedingEngine } from "./breeding";
 import { TraitsManager } from "./traits";
 import { getComputeVerifier } from "./compute-verifier";
+import { CrossChainBridge } from "./cross-chain/bridge";
+import { GlobalLeaderboard } from "./cross-chain/leaderboard";
+import { ProofOfIntelligence } from "./consensus/proof-of-intelligence";
 
 dotenv.config();
 
@@ -33,6 +36,9 @@ const ogStorage = new OGStorage(
 const orchestrator = new SwarmOrchestrator(ogStorage);
 const breedingEngine = new BreedingEngine(ogStorage);
 const traitsManager = new TraitsManager(ogStorage);
+const crossChainBridge = new CrossChainBridge();
+const globalLeaderboard = new GlobalLeaderboard();
+const poiEngine = new ProofOfIntelligence();
 
 // Track active sessions and clients
 const activeSessions: Map<string, any> = new Map();
@@ -809,6 +815,95 @@ app.get("/api/stats", (_req: Request, res: Response) => {
         console.error("[API] Error:", error);
         res.status(500).json({ error: String(error) });
     }
+});
+
+// ============================================================================
+// Cross-Chain Endpoints
+// ============================================================================
+
+// GET /api/cross-chain/status - Get cross-chain bridge status
+app.get("/api/cross-chain/status", (_req: Request, res: Response) => {
+    try {
+        const stats = crossChainBridge.getStats();
+        res.json({
+            ...stats,
+            leaderboardStats: globalLeaderboard.getStats(),
+            poiStats: poiEngine.getStats(),
+        });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// GET /api/cross-chain/chains - Get supported chains
+app.get("/api/cross-chain/chains", (_req: Request, res: Response) => {
+    res.json({ chains: crossChainBridge.getSupportedChains() });
+});
+
+// GET /api/cross-chain/messages - Get recent messages
+app.get("/api/cross-chain/messages", (req: Request, res: Response) => {
+    const limit = parseInt(req.query.limit as string) || 20;
+    res.json({ messages: crossChainBridge.getRecentMessages(limit) });
+});
+
+// POST /api/cross-chain/send - Send a cross-chain message
+app.post("/api/cross-chain/send", (req: Request, res: Response) => {
+    try {
+        const { sourceChain, destChain, messageType, payload } = req.body;
+        if (!sourceChain || !destChain) return res.status(400).json({ error: "Source and dest chains required" });
+        const message = crossChainBridge.sendMessage(sourceChain, destChain, messageType || 'state_sync', payload || {});
+        broadcastToAll({ type: 'cross_chain_message', data: message });
+        res.json(message);
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// GET /api/cross-chain/leaderboard - Global leaderboard
+app.get("/api/cross-chain/leaderboard", (req: Request, res: Response) => {
+    const chain = req.query.chain as string;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const rankings = chain
+        ? globalLeaderboard.getChainRankings(chain, limit)
+        : globalLeaderboard.getGlobalRankings(limit);
+    res.json({ rankings, chain: chain || 'global', stats: globalLeaderboard.getStats() });
+});
+
+// ============================================================================
+// Proof-of-Intelligence Endpoints
+// ============================================================================
+
+// POST /api/poi/run - Run PoI consensus on a prompt
+app.post("/api/poi/run", (req: Request, res: Response) => {
+    try {
+        const { prompt, agentDecisions } = req.body;
+        if (!prompt) return res.status(400).json({ error: "Prompt required" });
+
+        // If no decisions provided, generate simulated ones
+        const decisions = agentDecisions || {
+            planner: Math.random() > 0.3 ? 'APPROVE: Plan is sound' : 'REVISE: Plan needs work',
+            researcher: Math.random() > 0.25 ? 'APPROVE: Evidence supports' : 'REVISE: Insufficient evidence',
+            critic: Math.random() > 0.4 ? 'APPROVE: Meets criteria' : 'REVISE: Safety concerns',
+            executor: Math.random() > 0.2 ? 'APPROVE: Executable' : 'REVISE: Too complex',
+        };
+
+        const result = poiEngine.runConsensus(prompt, decisions);
+        broadcastToAll({ type: 'poi_consensus', data: result });
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+// GET /api/poi/history - PoI consensus history
+app.get("/api/poi/history", (req: Request, res: Response) => {
+    const limit = parseInt(req.query.limit as string) || 10;
+    res.json({ rounds: poiEngine.getHistory(limit), stats: poiEngine.getStats() });
+});
+
+// GET /api/poi/stats - PoI statistics
+app.get("/api/poi/stats", (_req: Request, res: Response) => {
+    res.json(poiEngine.getStats());
 });
 
 // Error handlers

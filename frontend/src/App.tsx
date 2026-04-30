@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BarChart3, Network, Zap, Activity, Dna, Swords, Wifi, WifiOff } from 'lucide-react'
+import { BarChart3, Network, Zap, Activity, Dna, Swords, Wifi, WifiOff, Home, Globe } from 'lucide-react'
+import LandingPage from './components/LandingPage'
 import DeliberationPanel from './components/DeliberationPanel'
 import AgentMonitor from './components/AgentMonitor'
 import SessionHistory from './components/SessionHistory'
 import SystemStats from './components/SystemStats'
 import Gallery from './components/Gallery'
 import ArenaPanel from './components/ArenaPanel'
+import CrossChainDashboard from './components/CrossChainDashboard'
 import WebSocketManager from './services/websocket'
 
-type TabId = 'deliberate' | 'agents' | 'gallery' | 'arena' | 'history' | 'stats'
+type TabId = 'home' | 'deliberate' | 'agents' | 'gallery' | 'arena' | 'crosschain' | 'history' | 'stats'
 
 const pageVariants = {
     initial: { opacity: 0, y: 16, scale: 0.99 },
-    animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+    animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
     exit: { opacity: 0, y: -8, scale: 0.99, transition: { duration: 0.2 } },
 }
 
 function App() {
-    const [activeTab, setActiveTab] = useState<TabId>('deliberate')
+    const [activeTab, setActiveTab] = useState<TabId>('home')
     const [wsConnected, setWsConnected] = useState(false)
     const [systemHealth, setSystemHealth] = useState('checking')
 
@@ -45,21 +47,29 @@ function App() {
         return () => clearInterval(interval)
     }, [])
 
+    const handleNavigate = (tab: string) => {
+        setActiveTab(tab as TabId)
+    }
+
     const tabs: { id: TabId; label: string; icon: any }[] = [
-        { id: 'deliberate', label: 'Deliberate', icon: Zap },
-        { id: 'agents',     label: 'Agents',     icon: BarChart3 },
-        { id: 'gallery',    label: 'Gallery',    icon: Dna },
-        { id: 'arena',      label: 'Arena',      icon: Swords },
-        { id: 'history',    label: 'History',     icon: Activity },
-        { id: 'stats',      label: 'Statistics',  icon: BarChart3 },
+        { id: 'home',       label: 'Overview',    icon: Home },
+        { id: 'deliberate', label: 'Deliberate',  icon: Zap },
+        { id: 'agents',     label: 'Agents',      icon: BarChart3 },
+        { id: 'gallery',    label: 'Gallery',     icon: Dna },
+        { id: 'arena',      label: 'Arena',        icon: Swords },
+        { id: 'crosschain', label: 'Cross-Chain', icon: Globe },
+        { id: 'history',    label: 'History',      icon: Activity },
+        { id: 'stats',      label: 'Statistics',   icon: BarChart3 },
     ]
 
     const renderTab = () => {
         switch (activeTab) {
+            case 'home':       return <LandingPage onNavigate={handleNavigate} />
             case 'deliberate': return <DeliberationPanel />
             case 'agents':     return <AgentMonitor />
             case 'gallery':    return <Gallery />
             case 'arena':      return <ArenaPanel />
+            case 'crosschain': return <CrossChainDashboard />
             case 'history':    return <SessionHistory />
             case 'stats':      return <SystemStats />
         }
