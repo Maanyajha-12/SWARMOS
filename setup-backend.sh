@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🚀 SWARM OS Backend Setup"
+echo "🚀 SWARMOS Backend Setup"
 echo "========================"
 
 cd backend
