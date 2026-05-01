@@ -31,10 +31,10 @@ export interface ChainConfig {
 
 const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     '0g-testnet': {
-        chainId: 16600,
-        name: '0G Newton Testnet',
+        chainId: 16602,
+        name: '0G Galileo Testnet',
         rpcUrl: 'https://evmrpc-testnet.0g.ai',
-        explorerUrl: 'https://chainscan-newton.0g.ai',
+        explorerUrl: 'https://chainscan-galileo.0g.ai',
         icon: '🟢',
         color: '#10b981',
     },

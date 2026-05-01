@@ -5,13 +5,13 @@
 ### Trustless Multi-Agent AI Decision-Making for the Multi-Chain Future
 
 [![Built on 0G](https://img.shields.io/badge/Built%20on-0G%20Network-10b981?style=for-the-badge)](https://0g.ai)
+[![Live Demo](https://img.shields.io/badge/Live-Vercel-000?style=for-the-badge&logo=vercel)](https://frontend-six-steel-45.vercel.app)
+[![Contracts](https://img.shields.io/badge/Contracts-5%20on%20Galileo-blue?style=for-the-badge)](DEPLOYMENT_PROOF.md)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge)](https://typescriptlang.org)
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=for-the-badge)](https://soliditylang.org)
 
 **SWARM OS orchestrates autonomous AI agent swarms across multiple blockchains. Every decision is verified through 0G Compute TEE and recorded on-chain with cryptographic proof.**
 
-🌐 **Live Demo**: [frontend-six-steel-45.vercel.app](https://frontend-six-steel-45.vercel.app)
+🌐 **Live Demo**: [frontend-six-steel-45.vercel.app](https://frontend-six-steel-45.vercel.app) · 🔗 **On-Chain Proof**: [DEPLOYMENT_PROOF.md](DEPLOYMENT_PROOF.md) · 🎬 **Demo Guide**: [DEMO_GUIDE.md](DEMO_GUIDE.md)
 
 </div>
 
@@ -138,9 +138,10 @@ NODE_ENV=development
 OG_KV_ENDPOINT=http://localhost:8080
 OG_LOG_ENDPOINT=http://localhost:8081
 
-# 0G Compute — optional, uses simulation if not set
-OG_COMPUTE_ENDPOINT=https://serving-broker-testnet.0g.ai
-OG_COMPUTE_MODEL=qwen/qwen-2.5-7b-instruct
+# 0G Compute — Router API (TEE-verified inference)
+OG_COMPUTE_ENDPOINT=https://router-api-testnet.integratenetwork.work/v1
+OG_COMPUTE_ROUTER_API_KEY=your_router_api_key_here
+OG_COMPUTE_MODEL=deepseek-chat-v3
 ```
 
 ### Frontend (`frontend/.env`)
@@ -231,6 +232,8 @@ VITE_API_URL=http://localhost:5000
 
 All contracts are in `contracts/src/` and compile with Foundry (`forge build`).
 
+**Deployed to 0G Galileo Testnet (Chain ID: 16602)** — see [DEPLOYMENT_PROOF.md](DEPLOYMENT_PROOF.md) for all contract addresses and transaction hashes.
+
 ---
 
 ## 💰 Revenue Model
@@ -256,7 +259,7 @@ All contracts are in `contracts/src/` and compile with Foundry (`forge build`).
 | **Storage** | 0G KV + 0G Log (in-memory fallback included) |
 | **Contracts** | Solidity 0.8.20 + Foundry |
 | **Deployment** | Vercel (frontend) · Railway or self-hosted (backend) |
-| **Chains** | 0G Newton Testnet · Ethereum Sepolia · Polygon Mumbai |
+| **Chains** | 0G Galileo Testnet · Ethereum Sepolia · Polygon Mumbai |
 
 ---
 
@@ -311,6 +314,7 @@ SWARMOS/
 │       ├── ProofOfIntelligence.sol
 │       └── CrossChainBreeding.sol
 ├── DEMO_GUIDE.md                       # 4-minute demo walkthrough
+├── DEPLOYMENT_PROOF.md                  # On-chain proof (contract addresses, tx hashes)
 ├── SECURITY.md
 └── README.md
 ```
