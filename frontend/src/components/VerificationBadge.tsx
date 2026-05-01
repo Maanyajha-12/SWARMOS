@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Shield, ShieldCheck, Copy, Check, Database, Cpu, Lock, ExternalLink } from 'lucide-react'
+import { getExplorerTxUrl, getExplorerAddressUrl, getChainInfo } from '../services/blockchain'
 
 interface VerificationData {
     verified: boolean
@@ -22,10 +23,13 @@ interface VerificationData {
 
 interface VerificationProps {
     verification: VerificationData
+    txHash?: string
+    tokenId?: number
 }
 
-export default function VerificationBadge({ verification }: VerificationProps) {
+export default function VerificationBadge({ verification, txHash, tokenId }: VerificationProps) {
     const [copied, setCopied] = useState<string | null>(null)
+    const chainInfo = getChainInfo()
     const [animatedScores, setAnimatedScores] = useState({
         feasibility: 0, safety: 0, legality: 0, cost: 0,
     })
@@ -158,7 +162,13 @@ export default function VerificationBadge({ verification }: VerificationProps) {
                 {/* Verification Source */}
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border bg-purple-500/6 border-purple-500/12 text-purple-400">
                     <Cpu className="w-3 h-3" />
-                    {is0G ? 'serving-broker-testnet.0g.ai' : '0G Compute (Simulated)'}
+                    {is0G ? '0G Router API (TEE)' : '0G Compute (Simulated)'}
+                </div>
+
+                {/* Chain Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border bg-indigo-500/6 border-indigo-500/12 text-indigo-400">
+                    <Database className="w-3 h-3" />
+                    {chainInfo.name} (ID: {chainInfo.chainId})
                 </div>
 
                 {/* Stored in 0G Log */}
@@ -229,6 +239,41 @@ export default function VerificationBadge({ verification }: VerificationProps) {
                 </motion.div>
             )}
 
+            {/* ── Transaction Hash (if available) ── */}
+            {txHash && (
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 }}
+                    className="bg-[#040810] rounded-xl p-4 sm:p-5 border border-slate-700/15 space-y-3"
+                >
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <ExternalLink className="w-3 h-3" />
+                            On-Chain Transaction (0G Galileo)
+                        </p>
+                        <a
+                            href={getExplorerTxUrl(txHash)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-semibold"
+                        >
+                            View on Explorer <ExternalLink className="w-3 h-3" />
+                        </a>
+                    </div>
+                    <div className="bg-[#020408] rounded-lg p-3 border border-slate-800/50">
+                        <p className="text-sm font-mono text-blue-400/90 break-all leading-relaxed tracking-wide">
+                            {txHash}
+                        </p>
+                    </div>
+                    {tokenId && (
+                        <p className="text-[10px] text-slate-600">
+                            iNFT Token ID: <span className="text-blue-400 font-mono font-bold">#{tokenId}</span>
+                        </p>
+                    )}
+                </motion.div>
+            )}
+
             {/* ── Compute Hash + Provider ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {computeHash && (
@@ -248,8 +293,20 @@ export default function VerificationBadge({ verification }: VerificationProps) {
 
                 {providerAddress && (
                     <div className="bg-[#040810] rounded-xl p-3.5 border border-slate-700/15">
-                        <p className="text-[10px] text-slate-600 uppercase tracking-wider font-semibold">Provider Address</p>
-                        <p className="text-xs font-mono text-slate-400 mt-1.5 truncate">{truncateHash(providerAddress)}</p>
+                        <div className="flex items-center justify-between">
+                            <p className="text-[10px] text-slate-600 uppercase tracking-wider font-semibold">Provider / Router</p>
+                            {providerAddress.startsWith('0x') && providerAddress.length === 42 && (
+                                <a
+                                    href={getExplorerAddressUrl(providerAddress)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                            )}
+                        </div>
+                        <p className="text-xs font-mono text-slate-400 mt-1.5 truncate">{providerAddress === '0g-router' ? '0G Router API (auto-routed)' : truncateHash(providerAddress)}</p>
                     </div>
                 )}
             </div>

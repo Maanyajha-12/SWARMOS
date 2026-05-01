@@ -19,5 +19,9 @@ func_attrs_order = ["public", "payable", "view", "pure"]
 sort_imports = true
 
 [rpc_endpoints]
-0g_testnet = "https://rpc-testnet.0g.ai"
+0g_testnet = "https://evmrpc-testnet.0g.ai"
 localhost = "http://127.0.0.1:8545"
+
+[etherscan]
+0g_testnet = { key = "${ETHERSCAN_API_KEY}", url = "https://chainscan-galileo.0g.ai/api" }
+

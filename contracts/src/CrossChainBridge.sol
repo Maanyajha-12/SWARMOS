@@ -48,7 +48,7 @@ contract CrossChainBridge {
         authorizedRelayers[msg.sender] = true;
 
         // Register default chains
-        supportedChains[16600] = true;     // 0G Newton Testnet
+        supportedChains[16602] = true;     // 0G Galileo Testnet
         supportedChains[11155111] = true;  // Ethereum Sepolia
         supportedChains[80001] = true;     // Polygon Mumbai
     }

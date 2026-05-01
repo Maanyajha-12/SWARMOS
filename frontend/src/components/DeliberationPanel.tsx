@@ -331,7 +331,7 @@ export default function DeliberationPanel() {
                         </div>
 
                         {criticData && <motion.div variants={fadeUp}><VerdictPanel verdict={criticData} /></motion.div>}
-                        {verifierData && <motion.div variants={fadeUp}><VerificationBadge verification={verifierData} /></motion.div>}
+                        {verifierData && <motion.div variants={fadeUp}><VerificationBadge verification={verifierData} txHash={executorData?.tx_hash || fullResult?.execution?.tx_hash} tokenId={fullResult?.token_id} /></motion.div>}
                         {executorData && <motion.div variants={fadeUp}><ExecutorPanel execution={executorData} /></motion.div>}
 
                         {fullResult && (

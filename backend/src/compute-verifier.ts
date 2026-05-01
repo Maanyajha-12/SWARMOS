@@ -1,19 +1,19 @@
 // backend/src/compute-verifier.ts
-// 0G Compute Verification — Uses the 0G Compute Network for trustless AI verification
+// 0G Compute Verification — Uses the 0G Compute Router API for trustless AI verification
 // Falls back to local simulation when 0G Compute is unavailable
 //
 // How it works:
 //   1. Takes plan + evidence + verdict from the deliberation pipeline
-//   2. Sends the data to 0G Compute (Serving Broker) for independent AI verification
+//   2. Sends the data to 0G Compute Router API for independent AI verification
 //   3. 0G runs inference inside a TEE (Trusted Execution Environment)
 //   4. Returns a cryptographic proof hash + verification scores
 //   5. Falls back to local simulation when 0G Compute is unreachable
 //
-// Getting 0G Compute Endpoints:
-//   - Testnet: https://serving-broker-testnet.0g.ai
-//   - Mainnet: https://serving-broker.0g.ai
-//   - Docs: https://docs.0g.ai → Compute Network
-//   - GitHub: https://github.com/0gfoundation/0g-compute-ts-starter-kit
+// 0G Compute Router API (OpenAI-compatible):
+//   - Testnet: https://router-api-testnet.integratenetwork.work/v1
+//   - Mainnet: https://router-api.0g.ai/v1
+//   - Dashboard: https://pc.testnet.0g.ai (get API key)
+//   - Docs: https://docs.0g.ai → Compute Network → Router
 
 import axios from "axios";
 import crypto from "crypto";
@@ -62,26 +62,23 @@ export interface ComputeVerificationResult {
 }
 
 // ============================================================================
-// 0G Compute Network — Available Models
+// 0G Compute Router — Available Models
 // ============================================================================
 //
-// Testnet (evmrpc-testnet.0g.ai):
-//   - qwen/qwen-2.5-7b-instruct   → Provider: 0xa48f01287233509FD694a22Bf840225062E67836
-//   - openai/gpt-oss-20b           → Provider: 0x8e60d466FD16798Bec4868aa4CE38586D5590049
-//   - google/gemma-3-27b-it        → Provider: 0x69Eb5a0BD7d0f4bF39eD5CE9Bd3376c61863aE08
+// The Router handles provider discovery automatically. Available models:
+//   - deepseek-chat-v3          (conversational, fast)
+//   - glm-5-fp8                 (high-performance reasoning)
+//   - gpt-oss-120b              (large-scale open-source GPT)
+//   - qwen3-vl-30b-a3b-instruct (efficient conversational)
 //
-// Mainnet (evmrpc.0g.ai):
-//   - deepseek-ai/DeepSeek-V3.1   → Provider: 0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C
-//   - openai/gpt-oss-120b         → Provider: 0xBB3f5b0b5062CB5B3245222C5917afD1f6e13aF6
-//   - qwen/qwen2.5-vl-72b-instruct → Provider: 0x4415ef5CBb415347bb18493af7cE01f225Fc0868
-//
-// All services use TeeML verification (Trusted Execution Environment)
+// All services use TeeML/TeeTLS verification (Trusted Execution Environment)
 
-const OG_TESTNET_PROVIDERS = {
-  "qwen/qwen-2.5-7b-instruct": "0xa48f01287233509FD694a22Bf840225062E67836",
-  "openai/gpt-oss-20b": "0x8e60d466FD16798Bec4868aa4CE38586D5590049",
-  "google/gemma-3-27b-it": "0x69Eb5a0BD7d0f4bF39eD5CE9Bd3376c61863aE08",
-};
+const OG_ROUTER_MODELS = [
+  "deepseek-chat-v3",
+  "glm-5-fp8",
+  "gpt-oss-120b",
+  "qwen3-vl-30b-a3b-instruct",
+];
 
 // ============================================================================
 // Compute Verifier Class
@@ -100,15 +97,15 @@ export class ComputeVerifier {
     this.endpoint = endpoint;
     this.apiKey = apiKey;
 
-    // Default to Qwen 2.5 on testnet (fastest, lowest cost)
-    this.model = process.env.OG_COMPUTE_MODEL || "qwen/qwen-2.5-7b-instruct";
-    this.providerAddress =
-      process.env.OG_COMPUTE_PROVIDER_ADDRESS ||
-      OG_TESTNET_PROVIDERS["qwen/qwen-2.5-7b-instruct"];
+    // Default to DeepSeek Chat V3 on testnet (fast, good quality)
+    this.model = process.env.OG_COMPUTE_MODEL || "deepseek-chat-v3";
+    this.providerAddress = "0g-router"; // Router handles provider selection
 
-    // If endpoint is the known testnet URL, assume it's available
+    // If endpoint is a known 0G Router URL, assume it's available
     // and let the actual verification call handle failures with retry
     if (
+      this.endpoint.includes("router-api-testnet.integratenetwork.work") ||
+      this.endpoint.includes("router-api.0g.ai") ||
       this.endpoint.includes("serving-broker-testnet.0g.ai") ||
       this.endpoint.includes("serving-broker.0g.ai")
     ) {
@@ -186,9 +183,14 @@ export class ComputeVerifier {
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        // 0G Compute uses an OpenAI-compatible API
+        // 0G Router API is OpenAI-compatible
+        // Base URL already includes /v1, so we just append /chat/completions
+        const url = this.endpoint.endsWith('/v1')
+          ? `${this.endpoint}/chat/completions`
+          : `${this.endpoint}/v1/chat/completions`;
+
         const response = await axios.post(
-          `${this.endpoint}/v1/chat/completions`,
+          url,
           {
             model: this.model,
             messages: [
@@ -428,17 +430,21 @@ Respond with ONLY valid JSON (no markdown):
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Try to hit the 0G Compute services list endpoint with short timeout
-      const response = await axios.get(`${this.endpoint}/v1/models`, {
+      // Try to hit the 0G Router models endpoint
+      const url = this.endpoint.endsWith('/v1')
+        ? `${this.endpoint}/models`
+        : `${this.endpoint}/v1/models`;
+      const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.apiKey}` },
-        timeout: 3000,
+        timeout: 5000,
       });
       return response.status === 200;
     } catch {
       // Try alternative health check
       try {
-        const response = await axios.get(`${this.endpoint}/health`, {
-          timeout: 2000,
+        const baseUrl = this.endpoint.replace('/v1', '');
+        const response = await axios.get(`${baseUrl}/health`, {
+          timeout: 3000,
         });
         return response.status === 200;
       } catch {
@@ -477,8 +483,8 @@ let verifierInstance: ComputeVerifier | null = null;
 export function getComputeVerifier(): ComputeVerifier {
   if (!verifierInstance) {
     const endpoint =
-      process.env.OG_COMPUTE_ENDPOINT || "https://serving-broker-testnet.0g.ai";
-    const apiKey = process.env.OG_COMPUTE_API_KEY || "";
+      process.env.OG_COMPUTE_ENDPOINT || "https://router-api-testnet.integratenetwork.work/v1";
+    const apiKey = process.env.OG_COMPUTE_ROUTER_API_KEY || process.env.OG_COMPUTE_API_KEY || "";
     verifierInstance = new ComputeVerifier(endpoint, apiKey);
   }
   return verifierInstance;
